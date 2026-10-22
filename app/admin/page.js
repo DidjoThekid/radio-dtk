@@ -1,8 +1,9 @@
 'use client';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
+import { Room } from 'livekit-client';
 
-const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3, spotify: null };
+const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3, spotify: null, live: false };
 
 // Mesure la durée d'un fichier audio (nécessaire pour la synchronisation)
 const dur = (src) => new Promise((res) => {
@@ -23,8 +24,9 @@ export default function Admin() {
   const [at, setAt] = useState('');
   const [ax, setAx] = useState('');
   const [rec, setRec] = useState(false);
+  const [live, setLive] = useState(false);
   const sr = useRef(s); sr.current = s;
-  const mr = useRef(), t0 = useRef(0);
+  const mr = useRef(), t0 = useRef(0), room = useRef(null);
 
   const save = async (n) => {
     setS(n); sr.current = n;
@@ -36,8 +38,32 @@ export default function Admin() {
   };
 
   const login = async () => {
-    const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()) };
+    const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()), live: false };
     if (await save(cur)) { setOk(true); setMsg(''); }
+  };
+
+  // 🔴 Direct : ton micro est envoyé en temps réel aux auditeurs
+  const goLive = async () => {
+    try {
+      setMsg('Connexion au direct…');
+      const r = await fetch('/api/live/token', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify({ admin: true }) });
+      if (!r.ok) throw new Error(r.status === 500 ? 'LiveKit non configuré (variables Vercel)' : 'Mot de passe incorrect');
+      const { token, url } = await r.json();
+      const rm = new Room();
+      await rm.connect(url, token);
+      await rm.localParticipant.setMicrophoneEnabled(true);
+      room.current = rm;
+      await save({ ...sr.current, live: true });
+      setLive(true);
+      setMsg('🔴 Tu es en direct ! Les auditeurs te rejoignent en quelques secondes.');
+    } catch (err) { setMsg('❌ ' + err.message); }
+  };
+
+  const stopLive = async () => {
+    if (room.current) { await room.current.disconnect(); room.current = null; }
+    await save({ ...sr.current, live: false });
+    setLive(false);
+    setMsg('Direct terminé.');
   };
 
   const up = async (f) =>
@@ -151,6 +177,14 @@ export default function Admin() {
       )}
 
       <div className="card">
+        <h2>🔴 Direct (appel en temps réel)</h2>
+        <p>Parle dans ton micro : les auditeurs t'entendent en direct et la musique baisse. Utilise un casque pour éviter l'écho.</p>
+        <button className={live ? 'rec' : ''} onClick={live ? stopLive : goLive}>
+          {live ? '⏹ Arrêter le direct' : '🔴 Passer en direct'}
+        </button>
+      </div>
+
+      <div className="card">
         <h2>🎵 Musiques</h2>
         <input type="file" accept="audio/*" multiple onChange={(e) => addFiles(e, 'tracks')} />
         <List k="tracks" />
@@ -176,7 +210,7 @@ export default function Admin() {
       </div>
 
       <div className="card">
-        <h2>🎙️ Parler</h2>
+        <h2>🎙️ Message enregistré</h2>
         <button className={rec ? 'rec' : ''} onClick={toggleRec}>{rec ? '⏹ Arrêter et diffuser' : '⏺ Enregistrer un message'}</button>
         <List k="voices" />
       </div>
