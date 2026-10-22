@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { Room, RoomEvent, Track } from 'livekit-client';
 
 const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 const WAIT = { label: 'EN ATTENTE', title: 'Aucun titre pour le moment…' };
@@ -45,13 +46,56 @@ export default function Radio() {
   const [playing, setPlaying] = useState(false);
   const [info, setInfo] = useState({ label: 'ÉCOUTE LA RADIO', title: 'Clique sur play pour lancer le direct' });
   const [hist, setHist] = useState([]);
+  const [liveOn, setLiveOn] = useState(false);
+  const [needAudio, setNeedAudio] = useState(false);
 
   const D = useRef({ tracks: [], ads: [], voices: [], adEvery: 3 });
   const off = useRef(0), lastJ = useRef('');
   const mu = useRef(null), cv = useRef(null);
-  const began = useRef(false), userPaused = useRef(false), talk = useRef(false);
+  const began = useRef(false), userPaused = useRef(false), talk = useRef(false), wasQuiet = useRef(false);
   const ctl = useRef(null), spOn = useRef(false), spHeld = useRef(false);
+  const liveRoom = useRef(null), joining = useRef(false), lastTry = useRef(0), liveAudio = useRef(false);
   const audio = useRef(), voice = useRef(), box = useRef();
+
+  const setLA = (b) => { liveAudio.current = b; setLiveOn(b); };
+
+  // Rejoint le direct de l'animateur (appel en temps réel)
+  const joinLive = async () => {
+    if (liveRoom.current || joining.current) return;
+    joining.current = true;
+    try {
+      const r = await fetch('/api/live/token', { method: 'POST', body: '{}' });
+      if (!r.ok) throw new Error('token');
+      const { token, url } = await r.json();
+      const room = new Room();
+      room.on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === Track.Kind.Audio) {
+          const el = track.attach();
+          el.dataset.live = '1';
+          document.body.appendChild(el);
+          setLA(true);
+        }
+      });
+      room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach().forEach((el) => el.remove());
+        if (track.kind === Track.Kind.Audio) setLA(false);
+      });
+      room.on(RoomEvent.AudioPlaybackStatusChanged, () => setNeedAudio(!room.canPlaybackAudio));
+      await room.connect(url, token);
+      room.startAudio().catch(() => {});
+      liveRoom.current = room;
+    } catch {}
+    joining.current = false;
+  };
+
+  const leaveLive = () => {
+    const room = liveRoom.current;
+    liveRoom.current = null;
+    document.querySelectorAll('audio[data-live]').forEach((el) => el.remove());
+    setLA(false);
+    setNeedAudio(false);
+    if (room) room.disconnect();
+  };
 
   const refresh = async () => {
     try {
@@ -69,25 +113,35 @@ export default function Radio() {
     const s = D.current, now = Date.now() + off.current;
     const a = audio.current, vo = voice.current;
 
-    // Message vocal : joué par-dessus, pour tout le monde au même moment
+    // Direct micro : on rejoint / on quitte selon l'état de la radio
+    if (s.live && !liveRoom.current && Date.now() - lastTry.current > 5000) { lastTry.current = Date.now(); joinLive(); }
+    if (!s.live && liveRoom.current) leaveLive();
+
+    // Message vocal enregistré : joué pour tout le monde au même moment
     const v = (s.voices || []).find((x) => x.startAt && x.duration > 0 && now >= x.startAt && now < x.startAt + x.duration * 1000);
     if (v && cv.current !== v.id) {
       cv.current = v.id;
-      if (ctl.current && spOn.current) { ctl.current.pause(); spHeld.current = true; } // playlist Spotify en pause
       vo.onloadedmetadata = () => {
         vo.currentTime = Math.max(0, (Date.now() + off.current - v.startAt) / 1000);
         vo.play().catch(() => {});
       };
       vo.src = v.url;
     }
-    if (!v && cv.current) {
-      cv.current = null;
-      vo.pause();
+    if (!v && cv.current) { cv.current = null; vo.pause(); }
+
+    // La musique baisse quand quelqu'un parle (message ou direct)
+    const quiet = !!v || liveAudio.current;
+    talk.current = quiet;
+    if (quiet && !wasQuiet.current) {
+      wasQuiet.current = true;
+      if (ctl.current && spOn.current) { ctl.current.pause(); spHeld.current = true; } // playlist Spotify en pause
+    }
+    if (!quiet && wasQuiet.current) {
+      wasQuiet.current = false;
       if (spHeld.current) { spHeld.current = false; if (ctl.current) ctl.current.resume(); }
     }
-    talk.current = !!v;
-    a.volume = v ? 0.2 : 1;
-    if (v && a.volume !== 0.2 && !a.paused) a.pause(); // iPhone : volume non modifiable
+    a.volume = quiet ? 0.2 : 1;
+    if (quiet && a.volume !== 0.2 && !a.paused) a.pause(); // iPhone : volume non modifiable
 
     // Musique
     const cur = whereIs(build(s), now);
@@ -107,7 +161,7 @@ export default function Radio() {
       if (item.kind === 'track') setHist((h) => [item.title, ...h].slice(0, 6));
     } else if (!a.paused && Math.abs(a.currentTime - pos) > 2) {
       a.currentTime = pos; // recale sur le direct
-    } else if (a.paused && !userPaused.current && !v && a.readyState > 0) {
+    } else if (a.paused && !userPaused.current && !quiet && a.readyState > 0) {
       a.play().catch(() => {});
     }
   };
@@ -159,7 +213,7 @@ export default function Radio() {
     refresh();
     const r = setInterval(refresh, 3000);
     const k = setInterval(() => began.current && tick(), 500);
-    return () => { clearInterval(r); clearInterval(k); };
+    return () => { clearInterval(r); clearInterval(k); leaveLive(); };
   }, []);
 
   return (
@@ -177,10 +231,16 @@ export default function Radio() {
 
       <main>
         <div className="hero">
+          {liveOn && (
+            <div className="live" style={{ margin: '0 auto 14px', width: 'fit-content' }}><i></i>🎙️ L'animateur est en direct</div>
+          )}
           <div className="eq"><b></b><b></b><b></b><b></b><b></b></div>
           <small>{info.label}</small>
           <h1>{info.title}</h1>
           {!started && <button className="btn" onClick={start}>▶ Écouter</button>}
+          {needAudio && (
+            <p><button className="btn" onClick={() => liveRoom.current && liveRoom.current.startAudio()}>🔊 Activer le son du direct</button></p>
+          )}
         </div>
 
         {P.spotify && (
