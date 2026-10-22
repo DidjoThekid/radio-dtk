@@ -14,6 +14,7 @@ const EMPTY = {
   live: false,
   dedicaces: [],
   speakerInvite: { status: 'inactive', url: '', token: '', room: 'radio' },
+  speakerInvites: [],
 };
 
 const dur = (src) => new Promise((res) => {
@@ -49,6 +50,7 @@ export default function Admin() {
 
   const login = async () => {
     const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()), live: false };
+    if (!Array.isArray(cur.speakerInvites)) cur.speakerInvites = [];
     if (await save(cur)) { setOk(true); setMsg(''); }
   };
 
@@ -150,27 +152,40 @@ export default function Admin() {
     m.start(); t0.current = Date.now(); mr.current = m; setRec(true);
   };
 
+  const getSpeakerInvites = () => Array.isArray(sr.current.speakerInvites) ? sr.current.speakerInvites : [];
+
   const createSpeakerInvite = async () => {
     const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const url = `${base}/invite?room=radio&speaker=1`;
+    const token = crypto.randomUUID();
+    const inviteUrl = `${base}/invite?room=radio&speaker=${encodeURIComponent(token)}`;
     const invite = {
-      status: 'inactive',
-      url,
-      token: crypto.randomUUID(),
+      id: token,
+      token,
       room: 'radio',
+      status: 'inactive',
+      url: inviteUrl,
+      createdAt: Date.now(),
     };
-    await save({ ...sr.current, speakerInvite: invite });
-    setMsg('✅ Lien d’invitation généré. Il est prêt mais reste inactif tant que tu ne le valides.');
+
+    const invites = [...getSpeakerInvites(), invite];
+    await save({ ...sr.current, speakerInvites: invites, speakerInvite: invite });
+    setMsg('✅ Lien d’invitation généré. Il reste inactif tant que tu ne le valides.');
   };
 
-  const setSpeakerStatus = async (status) => {
-    const invite = { ...(sr.current.speakerInvite || {}), status };
-    await save({ ...sr.current, speakerInvite: invite });
+  const setSpeakerStatus = async (token, status) => {
+    const next = getSpeakerInvites().map((x) => x.token === token ? { ...x, status } : x);
+    await save({ ...sr.current, speakerInvites: next, speakerInvite: next.find((x) => x.token === token) || next[0] || { status: 'inactive', url: '', token: '', room: 'radio' } });
     setMsg(status === 'active'
       ? '✅ Le mode invite est actif.'
       : status === 'paused'
         ? '⏸ Le mode invite est en pause.'
         : '⚪ Le mode invite est inactif.');
+  };
+
+  const deleteSpeakerInvite = async (token) => {
+    const next = getSpeakerInvites().filter((x) => x.token !== token);
+    await save({ ...sr.current, speakerInvites: next, speakerInvite: next[0] || { status: 'inactive', url: '', token: '', room: 'radio' } });
+    setMsg('✅ Lien supprimé.');
   };
 
   const lab = (k, x) =>
@@ -211,23 +226,27 @@ export default function Admin() {
 
       <div className="card">
         <h2>🧑‍🎤 Inviter à parler</h2>
-        <p>Génère une URL de participation, que tu peux garder inactive, mettre en pause, ou activer quand tu veux parler.</p>
-        <button onClick={createSpeakerInvite}>🔗 Générer l’URL d’invitation</button>
-        {s.speakerInvite && s.speakerInvite.url && (
-          <>
-            <p style={{ marginTop: 12 }}>
-              <strong>URL :</strong>{' '}
-              <a href={s.speakerInvite.url} target="_blank" rel="noreferrer">{s.speakerInvite.url}</a>
-            </p>
-            <p>
-              <strong>Statut :</strong> {s.speakerInvite.status}
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => setSpeakerStatus('inactive')}>⚪ Inactif</button>
-              <button onClick={() => setSpeakerStatus('paused')}>⏸ Pause</button>
-              <button onClick={() => setSpeakerStatus('active')}>🟢 Actif</button>
-            </div>
-          </>
+        <p>Génère plusieurs URLs de participation, que tu peux garder inactive, mettre en pause, activer ou supprimer.</p>
+        <button onClick={createSpeakerInvite}>🔗 Générer un lien d’invitation</button>
+
+        {getSpeakerInvites().length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            {getSpeakerInvites().map((invite) => (
+              <div key={invite.token} style={{ border: '1px solid #2b2b38', borderRadius: 10, padding: 12, marginTop: 10 }}>
+                <p style={{ margin: '0 0 8px' }}>
+                  <strong>URL :</strong>{' '}
+                  <a href={invite.url} target="_blank" rel="noreferrer">{invite.url}</a>
+                </p>
+                <p style={{ margin: '0 0 8px' }}><strong>Statut :</strong> {invite.status}</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => setSpeakerStatus(invite.token, 'inactive')}>⚪ Inactif</button>
+                  <button onClick={() => setSpeakerStatus(invite.token, 'paused')}>⏸ Pause</button>
+                  <button onClick={() => setSpeakerStatus(invite.token, 'active')}>🟢 Actif</button>
+                  <button className="d" onClick={() => deleteSpeakerInvite(invite.token)}>✕ Supprimer</button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
