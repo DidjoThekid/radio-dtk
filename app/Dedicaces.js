@@ -1,8 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Les infos du formulaire sont aussi envoyées par e-mail via FormSubmit.
-// Change l'adresse ci-dessous si tu veux les recevoir ailleurs.
 const FORMSUBMIT = 'https://formsubmit.co/ajax/team-dtk@outlook.com';
 
 const FIELD = {
@@ -19,7 +17,10 @@ export default function Dedicaces() {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const load = () =>
-    fetch('/api/dedicace', { cache: 'no-store' }).then((r) => r.json()).then((j) => setItems(j.items || [])).catch(() => {});
+    fetch('/api/dedicace', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => setItems(j.items || []))
+      .catch(() => {});
 
   useEffect(() => {
     load();
@@ -32,14 +33,14 @@ export default function Dedicaces() {
     setBusy(true);
     setMsg('');
     try {
-      // 1. Enregistrement dans le panel admin
       const r = await fetch('/api/dedicace', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(f),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Erreur');
 
-      // 2. Envoi par e-mail avec FormSubmit (sans bloquer si ça échoue)
       fetch(FORMSUBMIT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -58,7 +59,9 @@ export default function Dedicaces() {
       }).catch(() => {});
 
       setPay(j.payUrl);
-    } catch (err) { setMsg('❌ ' + err.message); }
+    } catch (err) {
+      setMsg('❌ ' + err.message);
+    }
     setBusy(false);
   };
 
