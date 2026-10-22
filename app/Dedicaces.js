@@ -63,7 +63,7 @@ export default function Dedicaces() {
   };
 
   return (
-    <section>
+    <section id="dedicaces">
       <h2>💌 Dédicaces</h2>
       <p style={{ color: '#9a9ab8' }}>
         Une dédicace écrite sur le site ou lue en direct à l'antenne : 0,99 €.<br />
