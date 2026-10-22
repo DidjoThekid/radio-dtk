@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 
-const EMPTY = { tracks: [], ads: [], voices: [], adEvery: 3 };
+const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3 };
 
 export default function Admin() {
   const [pw, setPw] = useState('');
@@ -10,6 +10,8 @@ export default function Admin() {
   const [s, setS] = useState(EMPTY);
   const [msg, setMsg] = useState('');
   const [link, setLink] = useState('');
+  const [at, setAt] = useState('');
+  const [ax, setAx] = useState('');
   const [rec, setRec] = useState(false);
   const sr = useRef(s); sr.current = s;
   const mr = useRef();
@@ -22,7 +24,7 @@ export default function Admin() {
   };
 
   const login = async () => {
-    const cur = await (await fetch('/api/state', { cache: 'no-store' })).json();
+    const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()) };
     if (await save(cur)) { setOk(true); setMsg(''); }
   };
 
@@ -53,6 +55,12 @@ export default function Admin() {
     setLink(''); setMsg('✅ Titre Spotify ajouté');
   };
 
+  const addAnnonce = async () => {
+    if (!at.trim()) return setMsg('❌ Mets au moins un titre');
+    await save({ ...sr.current, annonces: [...sr.current.annonces, { id: crypto.randomUUID(), title: at.trim(), text: ax.trim() }] });
+    setAt(''); setAx(''); setMsg('✅ Annonce ajoutée');
+  };
+
   const del = (key, id) => save({ ...sr.current, [key]: sr.current[key].filter((x) => x.id !== id) });
 
   const toggleRec = async () => {
@@ -75,17 +83,22 @@ export default function Admin() {
     m.start(); mr.current = m; setRec(true);
   };
 
+  const lab = (k, x) =>
+    k === 'annonces' ? '📢 ' + x.title + (x.text ? ' — ' + x.text : '') :
+    k === 'affiches' ? '🖼️ ' + x.title :
+    (x.type === 'spotify' ? '🟢 ' : '🎵 ') + x.title;
+
   const List = ({ k }) => (
     <ul>{s[k].map((x) => (
       <li key={x.id}>
-        <span>{x.type === 'spotify' ? '🟢 ' : '🎵 '}{x.title}</span>
+        <span>{lab(k, x)}</span>
         <button className="d" onClick={() => del(k, x.id)}>✕</button>
       </li>
     ))}</ul>
   );
 
   if (!ok) return (
-    <main>
+    <main className="admin">
       <h1>🔒 Admin</h1>
       <input type="password" placeholder="Mot de passe" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && login()} />{' '}
       <button onClick={login}>Connexion</button>
@@ -94,7 +107,7 @@ export default function Admin() {
   );
 
   return (
-    <main>
+    <main className="admin">
       <h1>🎛️ Panel admin</h1>
       <p>{msg}</p>
 
@@ -119,6 +132,20 @@ export default function Admin() {
         <h2>🎙️ Parler</h2>
         <button className={rec ? 'rec' : ''} onClick={toggleRec}>{rec ? '⏹ Arrêter et diffuser' : '⏺ Enregistrer un message'}</button>
         <List k="voices" />
+      </div>
+
+      <div className="card">
+        <h2>📰 Annonces</h2>
+        <p><input style={{ width: '100%' }} placeholder="Titre" value={at} onChange={(e) => setAt(e.target.value)} /></p>
+        <p><input style={{ width: '100%' }} placeholder="Texte (facultatif)" value={ax} onChange={(e) => setAx(e.target.value)} /></p>
+        <button onClick={addAnnonce}>Ajouter l'annonce</button>
+        <List k="annonces" />
+      </div>
+
+      <div className="card">
+        <h2>🖼️ Affiches</h2>
+        <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e, 'affiches')} />
+        <List k="affiches" />
       </div>
     </main>
   );
