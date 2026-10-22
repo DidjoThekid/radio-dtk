@@ -19,7 +19,7 @@ export default function Dedicaces() {
   const load = () =>
     fetch('/api/dedicace', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((j) => setItems(j.items || []))
+      .then((j) => setItems((j.items || []).filter((x) => x.status === 'approved')))
       .catch(() => {});
 
   useEffect(() => {

@@ -10,9 +10,14 @@ const generatePayUrl = (prenom, nom) => {
   return `https://revolut.me/${handle}?currency=EUR&amount=99&note=${note}`;
 };
 
-export async function GET() {
+export async function GET(req) {
   const state = await getState();
-  return Response.json({ items: state.dedicaces || [] });
+  const { searchParams } = new URL(req.url);
+  const adminMode = searchParams.get('admin') === '1';
+  const items = state.dedicaces || [];
+
+  if (adminMode) return Response.json({ items });
+  return Response.json({ items: items.filter((item) => item.status === 'approved') });
 }
 
 export async function POST(req) {
