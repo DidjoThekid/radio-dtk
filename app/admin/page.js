@@ -57,7 +57,7 @@ export default function Admin() {
   const goLive = async () => {
     try {
       setMsg('Connexion au direct…');
-      const r = await fetch('/api/live/token', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify({ admin: true }) });
+      const r = await fetch('/api/live/token', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify({ admin: true, room: 'radio' }) });
       if (!r.ok) throw new Error(r.status === 500 ? 'LiveKit non configuré (variables Vercel)' : 'Mot de passe incorrect');
       const { token, url } = await r.json();
       const rm = new Room();
@@ -173,10 +173,28 @@ export default function Admin() {
   };
 
   const setSpeakerStatus = async (token, status) => {
+    const target = getSpeakerInvites().find((x) => x.token === token);
+    if (!target) return;
+
+    if (status === 'active') {
+      const r = await fetch('/api/live/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: 'radio', speaker: true, token }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.token) {
+        setMsg('❌ Impossible d’activer le speaker LiveKit');
+        return;
+      }
+      target.liveToken = data.token;
+      target.liveUrl = data.url;
+    }
+
     const next = getSpeakerInvites().map((x) => x.token === token ? { ...x, status } : x);
     await save({ ...sr.current, speakerInvites: next, speakerInvite: next.find((x) => x.token === token) || next[0] || { status: 'inactive', url: '', token: '', room: 'radio' } });
     setMsg(status === 'active'
-      ? '✅ Le mode invite est actif.'
+      ? '✅ Le mode invite est actif et l’intervenant peut parler.'
       : status === 'paused'
         ? '⏸ Le mode invite est en pause.'
         : '⚪ Le mode invite est inactif.');

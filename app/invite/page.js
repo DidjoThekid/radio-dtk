@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Room } from 'livekit-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +11,38 @@ function InviteContent() {
   const room = params.get('room') || 'radio';
   const speaker = params.get('speaker') || params.get('token') || '0';
   const [status, setStatus] = useState('inactive');
+  const [liveToken, setLiveToken] = useState('');
 
   useEffect(() => {
     const token = speaker && speaker !== '0' ? `?token=${encodeURIComponent(speaker)}` : '';
-    const url = `/api/speaker${token}`;
-    fetch(url, { cache: 'no-store' })
+    fetch(`/api/speaker${token}`, { cache: 'no-store' })
       .then((r) => r.json())
-      .then((data) => setStatus((data && data.status) || 'inactive'))
+      .then(async (data) => {
+        setStatus(data.status || 'inactive');
+        if ((data.status || 'inactive') === 'active') {
+          const r2 = await fetch('/api/live/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room, speaker: true, token: speaker }),
+          });
+          const d2 = await r2.json();
+          if (r2.ok && d2.token) setLiveToken(d2.token);
+        }
+      })
       .catch(() => setStatus('inactive'));
-  }, [speaker]);
+  }, [room, speaker]);
+
+  useEffect(() => {
+    if (!liveToken || !speaker || speaker === '0') return;
+    const roomInstance = new Room();
+    roomInstance.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880', liveToken)
+      .then(() => roomInstance.localParticipant.setMicrophoneEnabled(true).catch(() => {}))
+      .catch(() => {});
+
+    return () => {
+      roomInstance.disconnect();
+    };
+  }, [liveToken, speaker]);
 
   const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 

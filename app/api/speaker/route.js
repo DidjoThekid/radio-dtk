@@ -12,7 +12,10 @@ export async function GET(req) {
     ? state.speakerInvites
     : (state.speakerInvite ? [state.speakerInvite] : []);
 
-  const item = token ? invites.find((x) => x.token === token) : invites.find((x) => x.status === 'active') || invites[0] || emptyInvite();
+  const item = token
+    ? invites.find((x) => x.token === token)
+    : invites.find((x) => x.status === 'active') || invites[0] || emptyInvite();
+
   return Response.json(item || emptyInvite());
 }
 
@@ -54,7 +57,13 @@ export async function POST(req) {
     return Response.json({ ok: false, error: 'token manquant' }, { status: 400 });
   }
 
-  const nextInvites = invites.map((inv) => inv.token === token || inv.id === token ? { ...inv, ...body, token: inv.token || token, room: inv.room || 'radio' } : inv);
+  const nextInvites = invites.map((inv) => {
+    if (inv.token === token || inv.id === token) {
+      return { ...inv, ...body, token: inv.token || token, room: inv.room || 'radio' };
+    }
+    return inv;
+  });
+
   const nextState = {
     ...state,
     speakerInvites: nextInvites,
