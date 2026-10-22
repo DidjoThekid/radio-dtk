@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Room, RoomEvent, Track } from 'livekit-client';
+import Dedicaces from './Dedicaces';
 
 const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 const WAIT = { label: 'EN ATTENTE', title: 'Aucun titre pour le moment…' };
@@ -58,6 +59,12 @@ export default function Radio() {
   const audio = useRef(), voice = useRef(), box = useRef();
 
   const setLA = (b) => { liveAudio.current = b; setLiveOn(b); };
+
+  // Fait défiler la page jusqu'au formulaire de dédicace
+  const goDedicace = () => {
+    const el = document.getElementById('dedicace-zone');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Rejoint le direct de l'animateur (appel en temps réel)
   const joinLive = async () => {
@@ -242,11 +249,10 @@ export default function Radio() {
             <p><button className="btn" onClick={() => liveRoom.current && liveRoom.current.startAudio()}>🔊 Activer le son du direct</button></p>
           )}
           <p>
-            <a href="#dedicaces"
-              style={{ display: 'inline-block', textDecoration: 'none', color: '#fff', fontWeight: 800,
-                padding: '10px 22px', borderRadius: 99, border: '2px solid #ff2d95' }}>
+            <button onClick={goDedicace}
+              style={{ background: 'transparent', border: '2px solid #ff2d95', borderRadius: 99, padding: '10px 22px', fontWeight: 800 }}>
               💌 Faire une dédicace · 0,99 €
-            </a>
+            </button>
           </p>
         </div>
 
@@ -260,6 +266,10 @@ export default function Radio() {
             </small>
           </section>
         )}
+
+        <div id="dedicace-zone">
+          <Dedicaces />
+        </div>
 
         {P.affiches.length > 0 && (
           <section>
