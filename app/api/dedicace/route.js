@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 const clean = (v) => (typeof v === 'string' ? v.trim() : '');
 
 const generatePayUrl = (prenom, nom) => {
-  const handle = process.env.REVOLUT_HANDLE || 'didjothedkid';
-  const ref = encodeURIComponent((prenom + ' ' + nom).trim().replace(/\s+/g, ' '));
-  return `https://revolut.me/${handle}?amount=0.99&comment=${ref}`;
+  const handle = process.env.REVOLUT_HANDLE || 'djordanthovafonso';
+  const note = encodeURIComponent((prenom + ' ' + nom).trim().replace(/\s+/g, ' '));
+  return `https://revolut.me/${handle}?currency=EUR&amount=99&note=${note}`;
 };
 
 export async function GET() {
