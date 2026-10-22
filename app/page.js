@@ -241,6 +241,13 @@ export default function Radio() {
           {needAudio && (
             <p><button className="btn" onClick={() => liveRoom.current && liveRoom.current.startAudio()}>🔊 Activer le son du direct</button></p>
           )}
+          <p>
+            <a href="#dedicaces"
+              style={{ display: 'inline-block', textDecoration: 'none', color: '#fff', fontWeight: 800,
+                padding: '10px 22px', borderRadius: 99, border: '2px solid #ff2d95' }}>
+              💌 Faire une dédicace · 0,99 €
+            </a>
+          </p>
         </div>
 
         {P.spotify && (
