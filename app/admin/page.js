@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Room } from 'livekit-client';
 
@@ -40,6 +40,43 @@ export default function Admin() {
   const sr = useRef(s); sr.current = s;
   const mr = useRef(), t0 = useRef(0), room = useRef(null);
 
+  const loadDedicaces = async () => {
+    const r = await fetch('/api/dedicace', { cache: 'no-store' });
+    if (!r.ok) return;
+    const data = await r.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    setS((prev) => ({ ...prev, dedicaces: items }));
+    sr.current = { ...sr.current, dedicaces: items };
+  };
+
+  const updateDedicateState = async (id, status) => {
+    const r = await fetch('/api/dedicace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    });
+    if (!r.ok) {
+      setMsg('❌ Impossible de mettre à jour la dédicace');
+      return;
+    }
+    await loadDedicaces();
+    setMsg(status === 'approved' ? '✅ Dédicace validée' : status === 'rejected' ? '❌ Dédicace refusée' : '⏳ Dédicace remise en attente');
+  };
+
+  const deleteDedicate = async (id) => {
+    const r = await fetch('/api/dedicace', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!r.ok) {
+      setMsg('❌ Impossible de supprimer la dédicace');
+      return;
+    }
+    await loadDedicaces();
+    setMsg('🗑️ Dédicace supprimée');
+  };
+
   const save = async (n) => {
     setS(n); sr.current = n;
     const r = await fetch('/api/state', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify(n) });
@@ -52,7 +89,7 @@ export default function Admin() {
   const login = async () => {
     const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()), live: false };
     if (!Array.isArray(cur.speakerInvites)) cur.speakerInvites = [];
-    if (await save(cur)) { setOk(true); setMsg(''); }
+    if (await save(cur)) { setOk(true); setMsg(''); await loadDedicaces(); }
   };
 
   const goLive = async () => {
@@ -244,6 +281,28 @@ export default function Admin() {
         <p>⚠️ Certains anciens titres n'ont pas de durée et ne passent pas en direct.{' '}
           <button onClick={fix}>🔧 Mesurer les durées</button></p>
       )}
+
+      <div className="card">
+        <h2>📩 Dédicaces</h2>
+        {(!s.dedicaces || s.dedicaces.length === 0) ? (
+          <p>Aucune dédicace pour le moment.</p>
+        ) : (
+          <ul>
+            {s.dedicaces.map((item) => (
+              <li key={item.id} style={{ marginBottom: 12 }}>
+                <div><strong>{item.prenom} {item.nom}</strong> · {item.pour}</div>
+                <div>{item.message}</div>
+                <div style={{ color: '#aaa', fontSize: 12 }}>{item.type} · {item.status || 'pending'}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                  <button onClick={() => updateDedicateState(item.id, 'approved')}>✅ Valider</button>
+                  <button onClick={() => updateDedicateState(item.id, 'rejected')}>❌ Refuser</button>
+                  <button className="d" onClick={() => deleteDedicate(item.id)}>🗑 Supprimer</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="card">
         <h2>🧑‍🎤 Inviter à parler</h2>

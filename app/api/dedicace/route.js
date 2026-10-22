@@ -49,3 +49,34 @@ export async function POST(req) {
 
   return Response.json({ ok: true, item, payUrl: item.payUrl });
 }
+
+export async function PATCH(req) {
+  const state = await getState();
+  const body = await req.json().catch(() => ({}));
+  const id = body.id;
+  const status = body.status;
+
+  if (!id || !['pending', 'approved', 'rejected'].includes(status)) {
+    return Response.json({ error: 'Paramètres invalides.' }, { status: 400 });
+  }
+
+  const dedicaces = (state.dedicaces || []).map((item) => item.id === id ? { ...item, status } : item);
+  await saveState({ ...state, dedicaces });
+
+  return Response.json({ ok: true, items: dedicaces });
+}
+
+export async function DELETE(req) {
+  const state = await getState();
+  const body = await req.json().catch(() => ({}));
+  const id = body.id;
+
+  if (!id) {
+    return Response.json({ error: 'ID manquant.' }, { status: 400 });
+  }
+
+  const dedicaces = (state.dedicaces || []).filter((item) => item.id !== id);
+  await saveState({ ...state, dedicaces });
+
+  return Response.json({ ok: true, items: dedicaces });
+}
