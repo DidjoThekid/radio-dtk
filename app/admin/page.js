@@ -1,186 +1,199 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
 
-const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
-const WAIT = { label: 'EN ATTENTE', title: 'Aucun titre pour le moment…' };
+const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3, spotify: null };
 
-// La grille des programmes : titres + une pub toutes les N musiques
-function build(P) {
-  const tr = (P.tracks || []).filter((t) => t.type !== 'spotify' && t.duration > 0);
-  const ads = (P.ads || []).filter((t) => t.duration > 0);
-  const seq = [];
-  tr.forEach((t, i) => {
-    seq.push({ ...t, kind: 'track' });
-    if (ads.length && P.adEvery > 0 && (i + 1) % P.adEvery === 0)
-      seq.push({ ...ads[(Math.floor((i + 1) / P.adEvery) - 1) % ads.length], kind: 'ad' });
-  });
-  return seq;
-}
+// Mesure la durée d'un fichier audio (nécessaire pour la synchronisation)
+const dur = (src) => new Promise((res) => {
+  const a = new Audio();
+  a.preload = 'metadata';
+  a.onloadedmetadata = () => res(isFinite(a.duration) ? Math.round(a.duration * 100) / 100 : 0);
+  a.onerror = () => res(0);
+  a.src = src;
+});
+const fmt = (s) => (s ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '?');
 
-// Qu'est-ce qui passe à l'instant t (heure du serveur, en ms) ?
-function whereIs(seq, t) {
-  const total = seq.reduce((s, x) => s + x.duration * 1000, 0);
-  if (!total) return null;
-  let p = t % total;
-  for (const x of seq) {
-    const d = x.duration * 1000;
-    if (p < d) return { item: x, startMs: t - p };
-    p -= d;
-  }
-  return null;
-}
+export default function Admin() {
+  const [pw, setPw] = useState('');
+  const [ok, setOk] = useState(false);
+  const [s, setS] = useState(EMPTY);
+  const [msg, setMsg] = useState('');
+  const [link, setLink] = useState('');
+  const [at, setAt] = useState('');
+  const [ax, setAx] = useState('');
+  const [rec, setRec] = useState(false);
+  const sr = useRef(s); sr.current = s;
+  const mr = useRef(), t0 = useRef(0);
 
-export default function Radio() {
-  const [P, setP] = useState({ annonces: [], affiches: [] });
-  const [started, setStarted] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [info, setInfo] = useState({ label: 'ÉCOUTE LA RADIO', title: 'Clique sur play pour lancer le direct' });
-  const [hist, setHist] = useState([]);
+  const save = async (n) => {
+    setS(n); sr.current = n;
+    const r = await fetch('/api/state', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify(n) });
+    if (!r.ok) { setMsg('❌ Mot de passe incorrect ou erreur serveur'); return false; }
+    const j = await r.json();
+    setS(j.state); sr.current = j.state;
+    return true;
+  };
 
-  const D = useRef({ tracks: [], ads: [], voices: [], adEvery: 3 });
-  const off = useRef(0), lastJ = useRef('');
-  const mu = useRef(null), cv = useRef(null);
-  const began = useRef(false), userPaused = useRef(false), talk = useRef(false);
-  const audio = useRef(), voice = useRef();
+  const login = async () => {
+    const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()) };
+    if (await save(cur)) { setOk(true); setMsg(''); }
+  };
 
-  const refresh = async () => {
+  const up = async (f) =>
+    (await upload('radio/' + f.name, f, {
+      access: 'public', handleUploadUrl: '/api/upload', clientPayload: pw, contentType: f.type,
+    })).url;
+
+  const addFiles = async (e, key) => {
+    const input = e.target, files = [...input.files];
+    const items = [...sr.current[key]];
     try {
-      const t0 = Date.now();
-      const s = await (await fetch('/api/state', { cache: 'no-store' })).json();
-      const t1 = Date.now();
-      if (t1 - t0 < 3000) off.current = s.now + (t1 - t0) / 2 - t1; // décalage avec l'heure du serveur
-      D.current = { annonces: [], affiches: [], ...s };
-      const j = JSON.stringify([s.annonces, s.affiches]);
-      if (j !== lastJ.current) { lastJ.current = j; setP(D.current); }
+      for (const f of files) {
+        setMsg('Envoi de ' + f.name + '…');
+        const item = { id: crypto.randomUUID(), type: 'file', title: f.name.replace(/\.[^.]+$/, ''), url: await up(f) };
+        if (key !== 'affiches') {
+          item.duration = await dur(URL.createObjectURL(f));
+          if (!item.duration) throw new Error(f.name + ' : durée illisible');
+        }
+        items.push(item);
+      }
+      await save({ ...sr.current, [key]: items });
+      setMsg('✅ Terminé');
+    } catch (err) { setMsg('❌ ' + err.message); }
+    input.value = '';
+  };
+
+  const fix = async () => {
+    setMsg('Mesure des durées…');
+    const n = { ...sr.current };
+    for (const k of ['tracks', 'ads'])
+      n[k] = await Promise.all(n[k].map(async (x) => (x.type !== 'spotify' && !x.duration ? { ...x, duration: await dur(x.url) } : x)));
+    await save(n);
+    setMsg('✅ Durées mesurées');
+  };
+
+  const setSpotify = async () => {
+    const m = link.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|album)\/([A-Za-z0-9]+)/);
+    if (!m) return setMsg('❌ Lien de playlist ou d’album Spotify invalide');
+    let title = m[1] === 'playlist' ? 'Playlist Spotify' : 'Album Spotify';
+    try {
+      const d = await (await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/' + m[1] + '/' + m[2]))).json();
+      if (d.title) title = d.title;
     } catch {}
+    await save({ ...sr.current, spotify: { kind: m[1], id: m[2], title } });
+    setLink('');
+    setMsg('✅ Playlist Spotify définie');
   };
 
-  const tick = () => {
-    const s = D.current, now = Date.now() + off.current;
-    const a = audio.current, vo = voice.current;
-
-    // Message vocal : joué par-dessus, pour tout le monde au même moment
-    const v = (s.voices || []).find((x) => x.startAt && x.duration > 0 && now >= x.startAt && now < x.startAt + x.duration * 1000);
-    if (v && cv.current !== v.id) {
-      cv.current = v.id;
-      vo.onloadedmetadata = () => {
-        vo.currentTime = Math.max(0, (Date.now() + off.current - v.startAt) / 1000);
-        vo.play().catch(() => {});
-      };
-      vo.src = v.url;
-    }
-    if (!v && cv.current) { cv.current = null; vo.pause(); }
-    talk.current = !!v;
-    a.volume = v ? 0.2 : 1;
-    if (v && a.volume !== 0.2 && !a.paused) a.pause(); // iPhone : volume non modifiable
-
-    // Musique
-    const cur = whereIs(build(s), now);
-    if (!cur) {
-      if (mu.current !== 'none') { mu.current = 'none'; a.pause(); setInfo(WAIT); }
-      return;
-    }
-    const { item, startMs } = cur, key = item.id + ':' + startMs, pos = (now - startMs) / 1000;
-    if (mu.current !== key) {
-      mu.current = key;
-      a.onloadedmetadata = () => {
-        a.currentTime = Math.max(0, (Date.now() + off.current - startMs) / 1000);
-        if (!userPaused.current && !talk.current) a.play().catch(() => {});
-      };
-      a.src = item.url;
-      setInfo({ label: item.kind === 'ad' ? 'PUBLICITÉ' : 'EN DIRECT', title: item.title });
-      if (item.kind === 'track') setHist((h) => [item.title, ...h].slice(0, 6));
-    } else if (!a.paused && Math.abs(a.currentTime - pos) > 2) {
-      a.currentTime = pos; // recale sur le direct
-    } else if (a.paused && !userPaused.current && !v && a.readyState > 0) {
-      a.play().catch(() => {});
-    }
+  const addAnnonce = async () => {
+    if (!at.trim()) return setMsg('❌ Mets au moins un titre');
+    await save({ ...sr.current, annonces: [...sr.current.annonces, { id: crypto.randomUUID(), title: at.trim(), text: ax.trim() }] });
+    setAt(''); setAx(''); setMsg('✅ Annonce ajoutée');
   };
 
-  const start = async () => {
-    if (began.current) return;
-    began.current = true;
-    setStarted(true);
-    [audio.current, voice.current].forEach((el) => { el.src = SILENCE; el.play().catch(() => {}); });
-    await refresh();
-    tick();
+  const del = (key, id) => save({ ...sr.current, [key]: sr.current[key].filter((x) => x.id !== id) });
+
+  const toggleRec = async () => {
+    if (rec) return mr.current.stop();
+    const st = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const m = new MediaRecorder(st), chunks = [];
+    m.ondataavailable = (e) => chunks.push(e.data);
+    m.onstop = async () => {
+      st.getTracks().forEach((t) => t.stop());
+      setRec(false);
+      const duration = (Date.now() - t0.current) / 1000;
+      const type = (m.mimeType || 'audio/webm').split(';')[0];
+      const f = new File([new Blob(chunks, { type })], 'voix-' + Date.now() + (type.includes('mp4') ? '.m4a' : '.webm'), { type });
+      try {
+        setMsg('Envoi du message…');
+        const url = await up(f);
+        await save({ ...sr.current, voices: [...sr.current.voices, { id: crypto.randomUUID(), type: 'file', title: 'Message ' + new Date().toLocaleTimeString('fr-FR'), url, duration }] });
+        setMsg('✅ Message diffusé dans quelques secondes');
+      } catch (err) { setMsg('❌ ' + err.message); }
+    };
+    m.start(); t0.current = Date.now(); mr.current = m; setRec(true);
   };
 
-  const toggle = () => {
-    if (!began.current) return start();
-    const a = audio.current;
-    if (a.paused) { userPaused.current = false; a.play().catch(() => {}); }
-    else { userPaused.current = true; a.pause(); }
-  };
+  const lab = (k, x) =>
+    k === 'annonces' ? '📢 ' + x.title + (x.text ? ' — ' + x.text : '') :
+    k === 'affiches' ? '🖼️ ' + x.title :
+    x.type === 'spotify' ? '🟢 ' + x.title + ' (ignoré en direct)' :
+    '🎵 ' + x.title + ' · ' + fmt(x.duration);
 
-  useEffect(() => {
-    refresh();
-    const r = setInterval(refresh, 3000);
-    const k = setInterval(() => began.current && tick(), 500);
-    return () => { clearInterval(r); clearInterval(k); };
-  }, []);
+  const List = ({ k }) => (
+    <ul>{s[k].map((x) => (
+      <li key={x.id}>
+        <span>{lab(k, x)}</span>
+        <button className="d" onClick={() => del(k, x.id)}>✕</button>
+      </li>
+    ))}</ul>
+  );
+
+  const missing = [...s.tracks, ...s.ads].some((x) => x.type !== 'spotify' && !x.duration);
+
+  if (!ok) return (
+    <main className="admin">
+      <h1>🔒 Admin</h1>
+      <input type="password" placeholder="Mot de passe" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && login()} />{' '}
+      <button onClick={login}>Connexion</button>
+      <p>{msg}</p>
+    </main>
+  );
 
   return (
-    <div className={playing ? 'playing' : ''}>
-      <header>
-        <div className="logo">📻 Ma Radio</div>
-        <div className="live"><i></i>EN DIRECT</div>
-      </header>
-
-      {P.annonces.length > 0 && (
-        <div className="ticker">
-          <span>{P.annonces.map((x) => '📢 ' + x.title + (x.text ? ' — ' + x.text : '')).join('\u00a0\u00a0\u00a0\u00a0★\u00a0\u00a0\u00a0\u00a0')}</span>
-        </div>
+    <main className="admin">
+      <h1>🎛️ Panel admin</h1>
+      <p>{msg}</p>
+      {missing && (
+        <p>⚠️ Certains anciens titres n'ont pas de durée et ne passent pas en direct.{' '}
+          <button onClick={fix}>🔧 Mesurer les durées</button></p>
       )}
 
-      <main>
-        <div className="hero">
-          <div className="eq"><b></b><b></b><b></b><b></b><b></b></div>
-          <small>{info.label}</small>
-          <h1>{info.title}</h1>
-          {!started && <button className="btn" onClick={start}>▶ Écouter</button>}
-        </div>
-
-        {P.affiches.length > 0 && (
-          <section>
-            <h2>Affiches</h2>
-            <div className="posters">
-              {P.affiches.map((x) => (
-                <a key={x.id} className="poster" href={x.link || x.url} target="_blank" rel="noopener noreferrer">
-                  <img src={x.url} alt={x.title || ''} loading="lazy" />
-                  <span>{x.title}</span>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {P.annonces.length > 0 && (
-          <section>
-            <h2>Annonces</h2>
-            <div className="news">
-              {P.annonces.map((x) => (
-                <div key={x.id} className="note"><b>{x.title}</b><p>{x.text}</p></div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {hist.length > 1 && (
-          <section>
-            <h2>Derniers titres</h2>
-            <ol>{hist.slice(1).map((t, i) => <li key={i}>{t}</li>)}</ol>
-          </section>
-        )}
-      </main>
-
-      <div className="bar">
-        <button id="pp" onClick={toggle}>{playing ? '⏸' : '▶'}</button>
-        <div><small>{info.label}</small><div id="btitle">{info.title}</div></div>
+      <div className="card">
+        <h2>🎵 Musiques</h2>
+        <input type="file" accept="audio/*" multiple onChange={(e) => addFiles(e, 'tracks')} />
+        <List k="tracks" />
       </div>
 
-      <audio ref={audio} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
-      <audio ref={voice} />
-    </div>
+      <div className="card">
+        <h2>🟢 Playlist Spotify</h2>
+        {s.spotify && (
+          <p>Actuelle : {s.spotify.title}{' '}
+            <button className="d" onClick={() => save({ ...sr.current, spotify: null })}>✕</button></p>
+        )}
+        <p><input style={{ width: '65%' }} placeholder="Lien d'une playlist (ou d'un album) Spotify" value={link} onChange={(e) => setLink(e.target.value)} />{' '}
+          <button onClick={setSpotify}>Définir</button></p>
+      </div>
+
+      <div className="card">
+        <h2>📢 Pubs</h2>
+        <input type="file" accept="audio/*" multiple onChange={(e) => addFiles(e, 'ads')} />
+        <p>Une pub toutes les{' '}
+          <input type="number" min="0" style={{ width: 70 }} value={s.adEvery}
+            onChange={(e) => save({ ...sr.current, adEvery: +e.target.value })} /> musiques (0 = aucune)</p>
+        <List k="ads" />
+      </div>
+
+      <div className="card">
+        <h2>🎙️ Parler</h2>
+        <button className={rec ? 'rec' : ''} onClick={toggleRec}>{rec ? '⏹ Arrêter et diffuser' : '⏺ Enregistrer un message'}</button>
+        <List k="voices" />
+      </div>
+
+      <div className="card">
+        <h2>📰 Annonces</h2>
+        <p><input style={{ width: '100%' }} placeholder="Titre" value={at} onChange={(e) => setAt(e.target.value)} /></p>
+        <p><input style={{ width: '100%' }} placeholder="Texte (facultatif)" value={ax} onChange={(e) => setAx(e.target.value)} /></p>
+        <button onClick={addAnnonce}>Ajouter l'annonce</button>
+        <List k="annonces" />
+      </div>
+
+      <div className="card">
+        <h2>🖼️ Affiches</h2>
+        <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e, 'affiches')} />
+        <List k="affiches" />
+      </div>
+    </main>
   );
 }
