@@ -1,8 +1,11 @@
 'use client';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
-export default function InvitePage() {
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
+
+function InviteContent() {
   const params = useSearchParams();
   const room = params.get('room') || 'radio';
   const speaker = params.get('speaker') || '0';
@@ -41,5 +44,17 @@ export default function InvitePage() {
       <h1>⚪ Inactif</h1>
       <p>L’invitation n’est pas active pour le moment.</p>
     </main>
+  );
+}
+
+export default function InvitePage() {
+  return (
+    <Suspense fallback={
+      <main style={{ padding: 32, fontFamily: 'sans-serif', color: '#fff', background: '#111827', minHeight: '100vh' }}>
+        <h1>Chargement…</h1>
+      </main>
+    }>
+      <InviteContent />
+    </Suspense>
   );
 }
