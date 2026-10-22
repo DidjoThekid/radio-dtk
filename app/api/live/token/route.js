@@ -20,6 +20,7 @@ export async function POST(req) {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  const name = (body.name || 'Invité').trim() || 'Invité';
   const identity = admin
     ? 'animateur'
     : speaker
@@ -29,6 +30,7 @@ export async function POST(req) {
   const at = new AccessToken(key, secret, {
     identity,
     ttl: '4h',
+    name,
   });
 
   at.addGrant({

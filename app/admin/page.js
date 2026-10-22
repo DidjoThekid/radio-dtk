@@ -13,7 +13,7 @@ const EMPTY = {
   spotify: null,
   live: false,
   dedicaces: [],
-  speakerInvite: { status: 'inactive', url: '', token: '', room: 'radio' },
+  speakerInvite: { status: 'inactive', url: '', token: '', room: 'radio', guestName: 'Invité' },
   speakerInvites: [],
 };
 
@@ -36,6 +36,7 @@ export default function Admin() {
   const [ax, setAx] = useState('');
   const [rec, setRec] = useState(false);
   const [live, setLive] = useState(false);
+  const [guestName, setGuestName] = useState('');
   const sr = useRef(s); sr.current = s;
   const mr = useRef(), t0 = useRef(0), room = useRef(null);
 
@@ -57,7 +58,7 @@ export default function Admin() {
   const goLive = async () => {
     try {
       setMsg('Connexion au direct…');
-      const r = await fetch('/api/live/token', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify({ admin: true, room: 'radio' }) });
+      const r = await fetch('/api/live/token', { method: 'POST', headers: { 'x-admin-password': pw }, body: JSON.stringify({ admin: true, room: 'radio', name: 'Animateur' }) });
       if (!r.ok) throw new Error(r.status === 500 ? 'LiveKit non configuré (variables Vercel)' : 'Mot de passe incorrect');
       const { token, url } = await r.json();
       const rm = new Room();
@@ -164,12 +165,14 @@ export default function Admin() {
       room: 'radio',
       status: 'inactive',
       url: inviteUrl,
+      guestName: (guestName || '').trim() || 'Invité',
       createdAt: Date.now(),
     };
 
     const invites = [...getSpeakerInvites(), invite];
     await save({ ...sr.current, speakerInvites: invites, speakerInvite: invite });
-    setMsg('✅ Lien d’invitation généré. Il reste inactif tant que tu ne le valides.');
+    setGuestName('');
+    setMsg('✅ Lien d’invitation généré pour ' + invite.guestName + '.');
   };
 
   const setSpeakerStatus = async (token, status) => {
@@ -180,7 +183,7 @@ export default function Admin() {
       const r = await fetch('/api/live/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room: 'radio', speaker: true, token }),
+        body: JSON.stringify({ room: 'radio', speaker: true, token, name: target.guestName || 'Invité' }),
       });
       const data = await r.json();
       if (!r.ok || !data.token) {
@@ -192,7 +195,7 @@ export default function Admin() {
     }
 
     const next = getSpeakerInvites().map((x) => x.token === token ? { ...x, status } : x);
-    await save({ ...sr.current, speakerInvites: next, speakerInvite: next.find((x) => x.token === token) || next[0] || { status: 'inactive', url: '', token: '', room: 'radio' } });
+    await save({ ...sr.current, speakerInvites: next, speakerInvite: next.find((x) => x.token === token) || next[0] || { status: 'inactive', url: '', token: '', room: 'radio', guestName: 'Invité' } });
     setMsg(status === 'active'
       ? '✅ Le mode invite est actif et l’intervenant peut parler.'
       : status === 'paused'
@@ -202,7 +205,7 @@ export default function Admin() {
 
   const deleteSpeakerInvite = async (token) => {
     const next = getSpeakerInvites().filter((x) => x.token !== token);
-    await save({ ...sr.current, speakerInvites: next, speakerInvite: next[0] || { status: 'inactive', url: '', token: '', room: 'radio' } });
+    await save({ ...sr.current, speakerInvites: next, speakerInvite: next[0] || { status: 'inactive', url: '', token: '', room: 'radio', guestName: 'Invité' } });
     setMsg('✅ Lien supprimé.');
   };
 
@@ -245,12 +248,23 @@ export default function Admin() {
       <div className="card">
         <h2>🧑‍🎤 Inviter à parler</h2>
         <p>Génère plusieurs URLs de participation, que tu peux garder inactive, mettre en pause, activer ou supprimer.</p>
+        <p>
+          <input
+            style={{ width: '100%' }}
+            placeholder="Nom de la personne invitée"
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+          />
+        </p>
         <button onClick={createSpeakerInvite}>🔗 Générer un lien d’invitation</button>
 
         {getSpeakerInvites().length > 0 && (
           <div style={{ marginTop: 16 }}>
             {getSpeakerInvites().map((invite) => (
               <div key={invite.token} style={{ border: '1px solid #2b2b38', borderRadius: 10, padding: 12, marginTop: 10 }}>
+                <p style={{ margin: '0 0 8px' }}>
+                  <strong>Nom :</strong> {invite.guestName || 'Invité'}
+                </p>
                 <p style={{ margin: '0 0 8px' }}>
                   <strong>URL :</strong>{' '}
                   <a href={invite.url} target="_blank" rel="noreferrer">{invite.url}</a>

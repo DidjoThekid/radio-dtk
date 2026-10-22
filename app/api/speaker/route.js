@@ -2,7 +2,7 @@ import { getState, saveState } from '../../../lib/store';
 
 export const dynamic = 'force-dynamic';
 
-const emptyInvite = () => ({ status: 'inactive', url: '', token: '', room: 'radio' });
+const emptyInvite = () => ({ status: 'inactive', url: '', token: '', room: 'radio', guestName: 'Invité' });
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -32,6 +32,7 @@ export async function POST(req) {
       room: body.room || 'radio',
       status: body.status || 'inactive',
       url: body.url || '',
+      guestName: body.guestName || 'Invité',
       createdAt: body.createdAt || Date.now(),
     };
     invites.push(invite);
