@@ -8,7 +8,7 @@ export async function POST(req) {
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         if (!process.env.ADMIN_PASSWORD || clientPayload !== process.env.ADMIN_PASSWORD)
           throw new Error('Unauthorized');
-        return { allowedContentTypes: ['audio/*'], addRandomSuffix: true };
+        return { allowedContentTypes: ['audio/*', 'image/*'], addRandomSuffix: true };
       },
       onUploadCompleted: async () => {},
     });
