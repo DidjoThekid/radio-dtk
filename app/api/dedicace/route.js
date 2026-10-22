@@ -1,7 +1,9 @@
-import { getState, saveState, isAdmin } from '../../../lib/store';
+import { getState, saveState } from '../../../lib/store';
+
 export const dynamic = 'force-dynamic';
 
 const clean = (v) => (typeof v === 'string' ? v.trim() : '');
+
 const generatePayUrl = (prenom, nom) => {
   const handle = process.env.REVOLUT_HANDLE || 'didjothedkid';
   const ref = encodeURIComponent((prenom + ' ' + nom).trim().replace(/\s+/g, ' '));
