@@ -3,9 +3,19 @@ import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Room } from 'livekit-client';
 
-const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3, spotify: null, live: false };
+const EMPTY = {
+  tracks: [],
+  ads: [],
+  voices: [],
+  annonces: [],
+  affiches: [],
+  adEvery: 3,
+  spotify: null,
+  live: false,
+  dedicaces: [],
+  speakerInvite: { status: 'inactive', url: '', token: '', room: 'radio' },
+};
 
-// Mesure la durée d'un fichier audio (nécessaire pour la synchronisation)
 const dur = (src) => new Promise((res) => {
   const a = new Audio();
   a.preload = 'metadata';
@@ -42,7 +52,6 @@ export default function Admin() {
     if (await save(cur)) { setOk(true); setMsg(''); }
   };
 
-  // 🔴 Direct : ton micro est envoyé en temps réel aux auditeurs
   const goLive = async () => {
     try {
       setMsg('Connexion au direct…');
@@ -141,6 +150,29 @@ export default function Admin() {
     m.start(); t0.current = Date.now(); mr.current = m; setRec(true);
   };
 
+  const createSpeakerInvite = async () => {
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const url = `${base}/invite?room=radio&speaker=1`;
+    const invite = {
+      status: 'inactive',
+      url,
+      token: crypto.randomUUID(),
+      room: 'radio',
+    };
+    await save({ ...sr.current, speakerInvite: invite });
+    setMsg('✅ Lien d’invitation généré. Il est prêt mais reste inactif tant que tu ne le valides.');
+  };
+
+  const setSpeakerStatus = async (status) => {
+    const invite = { ...(sr.current.speakerInvite || {}), status };
+    await save({ ...sr.current, speakerInvite: invite });
+    setMsg(status === 'active'
+      ? '✅ Le mode invite est actif.'
+      : status === 'paused'
+        ? '⏸ Le mode invite est en pause.'
+        : '⚪ Le mode invite est inactif.');
+  };
+
   const lab = (k, x) =>
     k === 'annonces' ? '📢 ' + x.title + (x.text ? ' — ' + x.text : '') :
     k === 'affiches' ? '🖼️ ' + x.title :
@@ -171,10 +203,33 @@ export default function Admin() {
     <main className="admin">
       <h1>🎛️ Panel admin</h1>
       <p>{msg}</p>
+
       {missing && (
         <p>⚠️ Certains anciens titres n'ont pas de durée et ne passent pas en direct.{' '}
           <button onClick={fix}>🔧 Mesurer les durées</button></p>
       )}
+
+      <div className="card">
+        <h2>🧑‍🎤 Inviter à parler</h2>
+        <p>Génère une URL de participation, que tu peux garder inactive, mettre en pause, ou activer quand tu veux parler.</p>
+        <button onClick={createSpeakerInvite}>🔗 Générer l’URL d’invitation</button>
+        {s.speakerInvite && s.speakerInvite.url && (
+          <>
+            <p style={{ marginTop: 12 }}>
+              <strong>URL :</strong>{' '}
+              <a href={s.speakerInvite.url} target="_blank" rel="noreferrer">{s.speakerInvite.url}</a>
+            </p>
+            <p>
+              <strong>Statut :</strong> {s.speakerInvite.status}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setSpeakerStatus('inactive')}>⚪ Inactif</button>
+              <button onClick={() => setSpeakerStatus('paused')}>⏸ Pause</button>
+              <button onClick={() => setSpeakerStatus('active')}>🟢 Actif</button>
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="card">
         <h2>🔴 Direct (appel en temps réel)</h2>
