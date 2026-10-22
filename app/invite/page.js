@@ -11,7 +11,6 @@ function InviteContent() {
   const room = params.get('room') || 'radio';
   const speaker = params.get('speaker') || params.get('token') || '0';
   const [status, setStatus] = useState('inactive');
-  const [liveToken, setLiveToken] = useState('');
   const [guestName, setGuestName] = useState('Invité');
 
   useEffect(() => {
@@ -21,36 +20,31 @@ function InviteContent() {
       .then(async (data) => {
         setStatus(data.status || 'inactive');
         setGuestName(data.guestName || 'Invité');
-        if ((data.status || 'inactive') === 'active') {
-          const r2 = await fetch('/api/live/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ room, speaker: true, token: speaker, name: data.guestName || 'Invité' }),
-          });
-          const d2 = await r2.json();
-          if (r2.ok && d2.token) setLiveToken(d2.token);
-        }
       })
       .catch(() => setStatus('inactive'));
   }, [room, speaker]);
 
-  useEffect(() => {
-    if (!liveToken || !speaker || speaker === '0') return;
+  const joinSpeaker = async () => {
+    if (!speaker || speaker === '0') return;
 
-    const roomInstance = new Room();
-    roomInstance.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880', liveToken)
-      .then(() => {
-        roomInstance.localParticipant.setName(guestName);
-        return roomInstance.localParticipant.setMicrophoneEnabled(true);
-      })
-      .catch(() => {});
+    const r = await fetch('/api/live/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room, speaker: true, token: speaker, name: guestName || 'Invité' }),
+    });
 
-    return () => {
-      roomInstance.disconnect();
-    };
-  }, [liveToken, speaker, guestName]);
+    const data = await r.json();
+    if (!r.ok || !data.token) {
+      setStatus('inactive');
+      return;
+    }
 
-  const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const liveRoom = new Room();
+    await liveRoom.connect(data.url, data.token);
+    liveRoom.localParticipant.setName(guestName || 'Invité');
+    await liveRoom.localParticipant.setMicrophoneEnabled(true);
+    window.location.href = `/?room=${encodeURIComponent(room)}&speaker=${encodeURIComponent(speaker)}`;
+  };
 
   if (status === 'active') {
     return (
@@ -58,8 +52,8 @@ function InviteContent() {
         <h1>🎙️ Invitation active</h1>
         <p>Tu peux rejoindre le live.</p>
         <button
-          onClick={() => window.location.href = `${base}/?room=${encodeURIComponent(room)}&speaker=${encodeURIComponent(speaker)}`}
-          style={{ color: '#fff', background: '#ff6bd6', border: 'none', borderRadius: 999, padding: '12px 20px', fontWeight: 700, cursor: 'pointer' }}
+          onClick={joinSpeaker}
+          style={{ color: '#111827', background: '#ffb3dc', border: 'none', borderRadius: 999, padding: '16px 28px', fontWeight: 800, fontSize: 20, cursor: 'pointer' }}
         >
           Rejoindre le live
         </button>
