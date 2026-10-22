@@ -10,18 +10,57 @@ const loadSpotify = () => new Promise((resolve) => {
   document.body.appendChild(s);
 });
 
+const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
 export default function Radio() {
   const [P, setP] = useState({ annonces: [], affiches: [] });
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [info, setInfo] = useState({ label: 'ÉCOUTE LA RADIO', title: 'Clique sur play pour lancer le direct' });
+  const [info, setInfo] = useState({ label: 'ÉCOUTE LA RADIO', title: 'Clique sur play pour lancer le direct', spotify: false });
   const [hist, setHist] = useState([]);
 
   const D = useRef({ tracks: [], ads: [], voices: [], adEvery: 3 });
   const heard = useRef(new Set());
   const idx = useRef(0), adIdx = useRef(0), cnt = useRef(0), first = useRef(true);
-  const ctl = useRef(null), began = useRef(false);
-  const audio = useRef(), sp = useRef();
+  const ctl = useRef(null), cur = useRef(null);
+  const began = useRef(false), ready = useRef(false), talking = useRef(false), pending = useRef(false);
+  const audio = useRef(), voice = useRef(), sp = useRef();
+
+  // Baisse (ou rétablit) la musique pendant un message vocal
+  const duck = (on) => {
+    const a = audio.current;
+    if (on) {
+      if (cur.current === 'file') {
+        a.volume = 0.2;
+        if (a.volume !== 0.2) a.pause(); // iPhone : volume non modifiable
+      }
+      if (ctl.current) ctl.current.pause(); // Spotify : pas de réglage de volume
+    } else {
+      a.volume = 1;
+      if (cur.current === 'file' && a.paused && !a.ended) a.play().catch(() => {});
+      if (ctl.current) {
+        if (pending.current) ctl.current.play();
+        else ctl.current.resume();
+      }
+      pending.current = false;
+    }
+  };
+
+  // Joue un message vocal par-dessus la musique
+  const checkVoices = () => {
+    if (!ready.current || talking.current) return;
+    const v = D.current.voices.find((x) => !heard.current.has(x.id));
+    if (!v) return;
+    heard.current.add(v.id);
+    talking.current = true;
+    duck(true);
+    const vo = voice.current;
+    const end = () => { talking.current = false; duck(false); checkVoices(); };
+    vo.onended = end;
+    vo.onerror = end;
+    vo.src = v.url;
+    vo.play().catch(end);
+  };
 
   const refresh = async () => {
     try {
@@ -33,6 +72,7 @@ export default function Radio() {
       }
       D.current = s;
       setP(s);
+      checkVoices();
     } catch {}
   };
 
@@ -42,27 +82,38 @@ export default function Radio() {
     ctl.current = null;
     sp.current.innerHTML = '';
     if (!it) {
-      setInfo({ label: 'EN ATTENTE', title: 'Aucun titre pour le moment…' });
+      cur.current = null;
+      setInfo({ label: 'EN ATTENTE', title: 'Aucun titre pour le moment…', spotify: false });
       setTimeout(() => refresh().then(next), 10000);
       return;
     }
+    cur.current = it.type === 'spotify' ? 'spotify' : 'file';
     setInfo({
-      label: kind === 'ad' ? 'PUBLICITÉ' : kind === 'voice' ? 'MESSAGE DE LA RADIO' : 'EN COURS',
+      label: kind === 'ad' ? 'PUBLICITÉ' : 'EN COURS',
       title: it.title,
+      spotify: it.type === 'spotify',
     });
     if (kind === 'track') setHist((h) => [it.title, ...h].slice(0, 6));
     if (it.type === 'spotify') {
-      let done = false;
+      let done = false, maxPos = 0;
       loadSpotify().then((api) => {
         const el = document.createElement('div');
         sp.current.appendChild(el);
         api.createController(el, { uri: 'spotify:track:' + it.spotifyId, width: '100%', height: 80 }, (c) => {
           ctl.current = c;
-          c.addListener('ready', () => c.play());
+          c.addListener('ready', () => {
+            if (talking.current) pending.current = true;
+            else c.play();
+          });
           c.addListener('playback_update', (e) => {
             const d = e.data;
             setPlaying(!d.isPaused);
-            if (!done && d.duration && d.position >= d.duration - 800) { done = true; next(); }
+            if (d.position > maxPos) maxPos = d.position;
+            const ended = d.duration > 0 && (
+              d.position >= d.duration - 1500 ||
+              (d.isPaused && d.position === 0 && maxPos > 1000)
+            );
+            if (!done && ended) { done = true; next(); }
           });
         });
       });
@@ -74,10 +125,8 @@ export default function Radio() {
 
   const next = () => {
     const s = D.current;
-    const v = s.voices.find((x) => !heard.current.has(x.id));
     let item = null, kind = 'track';
-    if (v) { heard.current.add(v.id); item = v; kind = 'voice'; }
-    else if (s.ads.length && s.adEvery > 0 && cnt.current >= s.adEvery) {
+    if (s.ads.length && s.adEvery > 0 && cnt.current >= s.adEvery) {
       cnt.current = 0;
       item = s.ads[adIdx.current++ % s.ads.length];
       kind = 'ad';
@@ -92,7 +141,11 @@ export default function Radio() {
     if (began.current) return;
     began.current = true;
     setStarted(true);
+    voice.current.src = SILENCE; // débloque le 2e lecteur audio (Safari)
+    voice.current.play().catch(() => {});
     await refresh();
+    D.current.voices.forEach((v) => heard.current.add(v.id));
+    ready.current = true;
     next();
   };
 
@@ -104,7 +157,7 @@ export default function Radio() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(refresh, 15000);
+    const t = setInterval(refresh, 10000);
     return () => clearInterval(t);
   }, []);
 
@@ -128,6 +181,11 @@ export default function Radio() {
           <h1>{info.title}</h1>
           {!started && <button className="btn" onClick={start}>▶ Écouter</button>}
           <div id="sp" ref={sp} />
+          {info.spotify && (
+            <small style={{ display: 'block', marginTop: 10 }}>
+              🟢 Titre Spotify : connecte-toi à Spotify dans ce navigateur pour l'entendre en entier (sinon, extrait de 30 s).
+            </small>
+          )}
         </div>
 
         {P.affiches.length > 0 && (
@@ -170,6 +228,7 @@ export default function Radio() {
 
       <audio ref={audio} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onEnded={next} onError={() => setTimeout(next, 1000)} />
+      <audio ref={voice} />
     </div>
   );
 }
