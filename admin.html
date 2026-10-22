@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin radio</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#0f0f14;color:#eee}
+main{max-width:640px;margin:0 auto;padding:32px 16px}
+button,input,textarea{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid #333;background:#1c1c26;color:#eee}
+button{cursor:pointer;background:#6c5ce7;border:0}
+button.d{background:#c0392b;padding:4px 10px}
+.card{background:#171720;border-radius:12px;padding:16px;margin:16px 0}
+ul{list-style:none;padding:0;margin:8px 0}
+li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0}
+</style></head>
+<body><main>
+<h1>🎛️ Panel admin</h1>
+<p id="msg"></p>
+
+<div class="card"><h2>🎵 Musiques</h2>
+  <input type="file" id="fm" accept="audio/*" multiple>
+  <p><input id="lk" placeholder="Lien Spotify d'un titre" style="width:65%"> <button id="sp">Ajouter</button></p>
+  <ul id="l-tracks"></ul>
+</div>
+
+<div class="card"><h2>📢 Pubs</h2>
+  <input type="file" id="fa" accept="audio/*" multiple>
+  <p>Une pub toutes les <input id="ev" type="number" min="0" style="width:70px"> musiques (0 = aucune)</p>
+  <ul id="l-ads"></ul>
+</div>
+
+<div class="card"><h2>🎙️ Parler</h2>
+  <button id="rec">⏺ Enregistrer un message</button>
+  <ul id="l-voices"></ul>
+</div>
+
+<div class="card"><h2>📰 Annonces</h2>
+  <p><input id="at" placeholder="Titre" style="width:100%"></p>
+  <p><input id="ax" placeholder="Texte (facultatif)" style="width:100%"></p>
+  <button id="an">Ajouter l'annonce</button>
+  <ul id="l-annonces"></ul>
+</div>
+
+<div class="card"><h2>🖼️ Affiches</h2>
+  <input type="file" id="ff" accept="image/*" multiple>
+  <ul id="l-affiches"></ul>
+</div>
+
+<button id="dl">⬇ Télécharger playlist.json</button>
+</main>
+<script>
+let P = { tracks: [], ads: [], voices: [], adEvery: 3, annonces: [], affiches: [] }, mr;
+const $ = id => document.getElementById(id), say = t => $('msg').textContent = t;
+const KEYS = ['tracks', 'ads', 'voices', 'annonces', 'affiches'];
+
+const lab = (k, x) =>
+  k === 'annonces' ? '📢 ' + x.title + (x.text ? ' — ' + x.text : '') :
+  k === 'affiches' ? '🖼️ ' + x.title + '  (' + x.image + ')' :
+  (x.spotify ? '🟢 ' : '🎵 ') + x.title + (x.file ? '  (' + x.file + ')' : '');
+
+function draw() {
+  $('ev').value = P.adEvery;
+  for (const k of KEYS) {
+    const ul = $('l-' + k);
+    ul.innerHTML = '';
+    P[k].forEach((x, i) => {
+      const li = document.createElement('li'), span = document.createElement('span'), b = document.createElement('button');
+      span.textContent = lab(k, x);
+      b.textContent = '✕'; b.className = 'd';
+      b.onclick = () => { P[k].splice(i, 1); draw(); };
+      li.append(span, b);
+      ul.appendChild(li);
+    });
+  }
+}
+
+function addFiles(input, key, dir, field) {
+  [...input.files].forEach(f => P[key].push({ title: f.name.replace(/\.[^.]+$/, ''), [field]: dir + '/' + f.name }));
+  input.value = '';
+  draw();
+  say('⚠️ Copie ces fichiers dans le dossier ' + dir + '/ de ton dépôt GitHub.');
+}
+$('fm').onchange = e => addFiles(e.target, 'tracks', 'music', 'file');
+$('fa').onchange = e => addFiles(e.target, 'ads', 'pub', 'file');
+$('ff').onchange = e => addFiles(e.target, 'affiches', 'affiches', 'image');
+
+$('an').onclick = () => {
+  const title = $('at').value.trim();
+  if (!title) return say('❌ Mets au moins un titre');
+  P.annonces.push({ title, text: $('ax').value.trim() });
+  $('at').value = $('ax').value = '';
+  draw();
+};
+
+$('sp').onclick = async () => {
+  const m = $('lk').value.match(/track\/([A-Za-z0-9]+)/);
+  if (!m) return say('❌ Lien de titre Spotify invalide');
+  let title = 'Titre Spotify';
+  try {
+    const d = await (await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/track/' + m[1]))).json();
+    title = d.title || title;
+  } catch (e) {}
+  P.tracks.push({ title, spotify: m[1] });
+  $('lk').value = '';
+  draw();
+};
+
+$('rec').onclick = async () => {
+  if (mr && mr.state === 'recording') return mr.stop();
+  const st = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mr = new MediaRecorder(st);
+  const ch = [];
+  mr.ondataavailable = e => ch.push(e.data);
+  mr.onstop = () => {
+    st.getTracks().forEach(t => t.stop());
+    const type = (mr.mimeType || 'audio/webm').split(';')[0];
+    const name = 'voix-' + Date.now() + (type.includes('mp4') ? '.m4a' : '.webm');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(ch, { type }));
+    a.download = name;
+    a.click();
+    P.voices.push({ id: 'v' + Date.now(), title: 'Message ' + new Date().toLocaleTimeString('fr-FR'), file: 'voix/' + name });
+    $('rec').textContent = '⏺ Enregistrer un message';
+    draw();
+    say('⚠️ Mets ' + name + ' dans le dossier voix/ de ton dépôt.');
+  };
+  mr.start();
+  $('rec').textContent = '⏹ Arrêter';
+};
+
+$('ev').onchange = e => P.adEvery = +e.target.value;
+
+$('dl').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 2)], { type: 'application/json' }));
+  a.download = 'playlist.json';
+  a.click();
+};
+
+fetch('playlist.json?t=' + Date.now()).then(r => r.json()).then(j => { P = Object.assign(P, j); draw(); }).catch(draw);
+</script></body></html>
