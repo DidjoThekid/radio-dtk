@@ -1,1 +1,8 @@
-{ "adEvery": 3, "tracks": [], "ads": [], "voices": [], "annonces": [], "affiches": [] }
+{
+  "adEvery": 3,
+  "tracks": [{ "title": "Mon titre", "file": "music/titre.mp3" }],
+  "ads": [],
+  "voices": [],
+  "annonces": [{ "title": "Soirée vendredi", "text": "Rendez-vous à 20h !" }],
+  "affiches": [{ "title": "Soirée vendredi", "image": "affiches/soiree.jpg" }]
+}
