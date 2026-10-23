@@ -1,6 +1,6 @@
 import { AccessToken } from 'livekit-server-sdk';
-import { isAdmin, getState } from '../../../lib/store';
-import { checkInvite } from '../../../lib/invite';
+import { isAdmin, getState } from '../../../../lib/store';
+import { checkInvite } from '../../../../lib/invite';
 
 export const dynamic = 'force-dynamic';
 
