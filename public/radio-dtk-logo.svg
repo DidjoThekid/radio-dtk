@@ -1,9 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Radio DTK logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Radio DTK logo">
   <defs>
-    <style>
-      .bg { fill: #0b1020; }
-    </style>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0a1024"/>
+      <stop offset="100%" stop-color="#0d3b7d"/>
+    </linearGradient>
   </defs>
-  <rect class="bg" width="512" height="512" rx="64"/>
-  <image href="/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png" x="26" y="26" width="460" height="460" preserveAspectRatio="xMidYMid meet"/>
+
+  <rect width="256" height="256" rx="44" fill="url(#bg)"/>
+
+  <g transform="translate(128 128)">
+    <circle r="76" fill="#07111d" opacity="0.55"/>
+    <path d="M0,-78 L14,-32 L62,-32 L22,2 L38,48 L0,18 L-38,48 L-22,2 L-62,-32 L-14,-32 Z" fill="#ff2d55"/>
+    <text x="0" y="48" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" fill="#ffffff" letter-spacing="2">DTK</text>
+  </g>
 </svg>
