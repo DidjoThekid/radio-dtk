@@ -56,6 +56,7 @@ export default function Radio() {
   const began = useRef(false), userPaused = useRef(false), talk = useRef(false), wasQuiet = useRef(false);
   const ctl = useRef(null), spOn = useRef(false), spHeld = useRef(false);
   const liveRoom = useRef(null), joining = useRef(false), lastTry = useRef(0), liveAudio = useRef(false);
+  const liveCnt = useRef(0);
   const audio = useRef(), voice = useRef(), box = useRef();
 
   const setLA = (b) => { liveAudio.current = b; setLiveOn(b); };
@@ -66,7 +67,7 @@ export default function Radio() {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Rejoint le direct de l'animateur (appel en temps réel)
+  // Rejoint le direct de l'animateur et des invités (appel en temps réel)
   const joinLive = async () => {
     if (liveRoom.current || joining.current) return;
     joining.current = true;
@@ -80,12 +81,16 @@ export default function Radio() {
           const el = track.attach();
           el.dataset.live = '1';
           document.body.appendChild(el);
+          liveCnt.current++;
           setLA(true);
         }
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach().forEach((el) => el.remove());
-        if (track.kind === Track.Kind.Audio) setLA(false);
+        if (track.kind === Track.Kind.Audio) {
+          liveCnt.current = Math.max(0, liveCnt.current - 1);
+          if (liveCnt.current === 0) setLA(false);
+        }
       });
       room.on(RoomEvent.AudioPlaybackStatusChanged, () => setNeedAudio(!room.canPlaybackAudio));
       await room.connect(url, token);
@@ -99,6 +104,7 @@ export default function Radio() {
     const room = liveRoom.current;
     liveRoom.current = null;
     document.querySelectorAll('audio[data-live]').forEach((el) => el.remove());
+    liveCnt.current = 0;
     setLA(false);
     setNeedAudio(false);
     if (room) room.disconnect();
@@ -239,7 +245,7 @@ export default function Radio() {
       <main>
         <div className="hero">
           {liveOn && (
-            <div className="live" style={{ margin: '0 auto 14px', width: 'fit-content' }}><i></i>🎙️ L'animateur est en direct</div>
+            <div className="live" style={{ margin: '0 auto 14px', width: 'fit-content' }}><i></i>🎙️ Direct en cours</div>
           )}
           <div className="eq"><b></b><b></b><b></b><b></b><b></b></div>
           <small>{info.label}</small>
@@ -249,13 +255,11 @@ export default function Radio() {
             <p><button className="btn" onClick={() => liveRoom.current && liveRoom.current.startAudio()}>🔊 Activer le son du direct</button></p>
           )}
           <p>
-            <button
-              onClick={goDedicace}
-              style={{ background: 'transparent', border: '2px solid #ff2d95', borderRadius: 99, padding: '10px 22px', fontWeight: 800 }}
-           > 
+            <button onClick={goDedicace}
+              style={{ background: 'transparent', border: '2px solid #ff2d95', borderRadius: 99, padding: '10px 22px', fontWeight: 800 }}>
               💌 Faire une dédicace · 0,99 €
-           </button>
-         </p>
+            </button>
+          </p>
         </div>
 
         {P.spotify && (
