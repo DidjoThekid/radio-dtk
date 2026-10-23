@@ -6,8 +6,8 @@ header{display:flex;justify-content:space-between;align-items:center;padding:14p
 .logo{display:flex;align-items:center;min-height:52px}
 .brand-logo{display:block;height:56px;width:auto;max-width:min(60vw,480px)}
 .brand-logo--small{height:52px}
-.live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
-.live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
+.live{background:linear-gradient(135deg,#8b0e63,#4a0a44);color:#fff;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.live i{width:14px;height:14px;display:block;border-radius:3px;background:linear-gradient(to right,transparent 0 10%,#fff 10% 18%,transparent 18% 28%,#fff 28% 36%,transparent 36% 46%,#fff 46% 54%,transparent 54% 64%,#fff 64% 72%,transparent 72% 82%,#fff 82% 90%,transparent 90% 100%)}
 @keyframes p{50%{opacity:.2}}
 .ticker{background:#000;color:#ffe14d;overflow:hidden;white-space:nowrap;font-weight:700;font-size:14px;padding:8px 0}
 .ticker span{display:inline-block;padding-left:100%;animation:t 30s linear infinite}
