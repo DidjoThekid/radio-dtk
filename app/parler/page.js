@@ -1,3 +1,4 @@
+'use client';
 import { useEffect, useState } from 'react';
 
 export default function SpeakerPage() {
@@ -6,7 +7,6 @@ export default function SpeakerPage() {
   const [muted, setMuted] = useState(false);
   const [status, setStatus] = useState('idle');
   const [msg, setMsg] = useState('');
-  const [room, setRoom] = useState(null);
 
   useEffect(() => {
     const loadInvite = async () => {
@@ -20,7 +20,6 @@ export default function SpeakerPage() {
   }, []);
 
   const join = async () => {
-    // placeholder – the live logic is handled in the app itself.
     setStatus('connecting');
     setMsg('Connexion…');
   };
