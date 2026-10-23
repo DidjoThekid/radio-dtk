@@ -2,13 +2,12 @@
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Room, RoomEvent } from 'livekit-client';
-import jsmediatags from 'jsmediatags';
+import { parseBlob } from 'music-metadata-browser'; // <-- Nouvelle bibliothèque
 import AdminDedicaces from './AdminDedicaces';
 import AdminInvites from './AdminInvites';
 
 const EMPTY = { tracks: [], ads: [], voices: [], annonces: [], affiches: [], adEvery: 3, spotify: null, live: false };
 
-// Mesure la durée d'un fichier audio (nécessaire pour la synchronisation)
 const dur = (src) => new Promise((res) => {
   const a = new Audio();
   a.preload = 'metadata';
@@ -89,23 +88,17 @@ export default function Admin() {
         if (key === 'tracks') {
           try {
             setMsg('Extraction de la pochette de ' + f.name + '…');
-            const tags = await new Promise((resolve, reject) => {
-              jsmediatags.read(f, {
-                onSuccess: (tag) => resolve(tag.tags),
-                onError: (error) => reject(error)
-              });
-            });
+            const metadata = await parseBlob(f);
             
-            if (tags && tags.picture) {
-              const { data, format } = tags.picture;
-              const blob = new Blob([new Uint8Array(data)], { type: format });
-              const coverFile = new File([blob], `cover-${item.id}.jpg`, { type: format });
+            if (metadata.common.picture && metadata.common.picture.length > 0) {
+              const picture = metadata.common.picture[0];
+              const blob = new Blob([picture.data], { type: picture.format });
+              const coverFile = new File([blob], `cover-${item.id}.jpg`, { type: picture.format });
               setMsg('Envoi de la pochette de ' + f.name + '…');
               item.image = await up(coverFile);
             }
           } catch (err) {
             console.warn('Pochette non trouvée ou erreur pour ' + f.name + ':', err);
-            // On continue sans pochette, ce n'est pas bloquant
           }
         }
 
