@@ -1,24 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 820" role="img" aria-labelledby="title desc">
-  <title id="title">Radio DTK</title>
-  <desc id="desc">Logo de Radio DTK avec le mot RADIO blanc et DTK rouge sur fond noir.</desc>
-  <rect width="1360" height="820" fill="#000000"/>
-  <g transform="translate(30 65)">
-    <path d="M90 120 H1170 V340 H90 Z" fill="none" stroke="#ff1d1d" stroke-width="12"/>
-    <g font-family="Impact, 'Arial Black', sans-serif" font-weight="900">
-      <text x="120" y="265" font-size="250" fill="#ffffff" letter-spacing="-8">RADIO</text>
-      <text x="215" y="510" font-size="250" fill="#ff1d1d" letter-spacing="-10">DTK</text>
-    </g>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Radio DTK</title>
+  <style>
+    :root{--bg:#0b0b1a;--card:#15152b;--blue:#1e90ff;--pink:#ff2d95;--txt:#f2f2fa;--mut:#9a9ab8}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:100px}
+    header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:linear-gradient(90deg,var(--blue),var(--pink))}
+    .logo{display:flex;align-items:center;min-height:52px}
+    .brand-logo{display:block;height:56px;width:auto;max-width:min(60vw,480px)}
+    .brand-logo--small{height:52px}
+    .live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
+    .live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
+    @keyframes p{50%{opacity:.2}} 
+    .ticker{background:#000;color:#ffe14d;overflow:hidden;white-space:nowrap;font-weight:700;font-size:14px;padding:8px 0}
+    .ticker span{display:inline-block;padding-left:100%;animation:t 30s linear infinite}
+    @keyframes t{to{transform:translateX(-100%)}}
+    main{max-width:980px;margin:0 auto;padding:20px 16px}
+    .hero{background:linear-gradient(135deg,#1b1b44,#2a1450);border-radius:18px;padding:28px 20px;text-align:center}
+    .hero small,.bar small{color:var(--mut);letter-spacing:2px;font-size:11px}
+    .hero h1{margin:8px 0 18px;font-size:clamp(22px,5vw,38px)}
+    .btn{font:inherit;font-weight:800;font-size:20px;padding:14px 34px;border:0;border-radius:99px;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--blue),var(--pink))}
+    .bar{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:14px;padding:12px 16px;background:#000d;backdrop-filter:blur(8px);border-top:1px solid #ffffff22}
+    #pp{width:48px;height:48px;border-radius:50%;border:0;font-size:20px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--blue),var(--pink))}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><img src="/radio-dtk-logo.svg" alt="Radio DTK" class="brand-logo brand-logo--small"></div>
+    <div class="live"><i></i>EN DIRECT</div>
+  </header>
 
-    <g transform="translate(1035 30)">
-      <path d="M0,-140 L34,-34 L142,-34 L50,18 L88,122 L0,60 L-88,122 L-50,18 L-142,-34 L-34,-34 Z" fill="#ff1d1d" stroke="#f7f7f7" stroke-width="14"/>
-      <path d="M0,-112 L26,-34 L116,-34 L42,12 L68,98 L0,52 L-68,98 L-42,12 L-116,-34 L-26,-34 Z" fill="#ff1d1d"/>
-    </g>
+  <main>
+    <div class="hero">
+      <h1>Radio DTK</h1>
+      <button class="btn">▶ Écouter</button>
+    </div>
+  </main>
 
-    <g transform="translate(260 570)">
-      <rect x="0" y="0" width="780" height="120" rx="6" fill="#f2f2f2" opacity="0.12"/>
-      <g font-family="Impact, 'Arial Black', sans-serif" font-weight="900" fill="#f3f3f3" font-size="78" letter-spacing="4">
-        <text x="110" y="86">TA RADIO, TA VIBE</text>
-      </g>
-    </g>
-  </g>
-</svg>
+  <div class="bar">
+    <button id="pp">▶</button>
+    <div><small>RADIO DTK</small><div>Prêt à écouter</div></div>
+  </div>
+</body>
+</html>
