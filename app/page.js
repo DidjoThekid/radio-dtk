@@ -59,6 +59,10 @@ export default function Radio() {
   const liveCnt = useRef(0);
   const audio = useRef(), voice = useRef(), box = useRef();
 
+  const nowMs = Date.now() + off.current;
+  const currentTrack = whereIs(build(P), nowMs)?.item || null;
+  const coverUrl = currentTrack?.cover || currentTrack?.image || currentTrack?.art || currentTrack?.poster || currentTrack?.thumbnail || '';
+
   const setLA = (b) => { liveAudio.current = b; setLiveOn(b); };
 
   // Fait défiler la page jusqu'au formulaire de dédicace
@@ -235,7 +239,14 @@ export default function Radio() {
         <div className="logo">
           <img src="/radio-dtk-logo.svg" alt="Radio DTK" className="brand-logo brand-logo--small" />
         </div>
-        <div className="live"><i></i>EN DIRECT</div>
+        {coverUrl ? (
+          <div className="live live--cover" aria-label="EN DIRECT">
+            <img src={coverUrl} alt={currentTrack?.title || 'Pochette'} className="live-cover" />
+            <span>EN DIRECT</span>
+          </div>
+        ) : (
+          <div className="live"><i></i>EN DIRECT</div>
+        )}
       </header>
 
       {P.annonces.length > 0 && (
