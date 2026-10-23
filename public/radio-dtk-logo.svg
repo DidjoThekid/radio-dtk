@@ -1,47 +1,29 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Radio DTK</title>
-  <style>
-    :root{--bg:#0b0b1a;--card:#15152b;--blue:#1e90ff;--pink:#ff2d95;--txt:#f2f2fa;--mut:#9a9ab8}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:100px}
-    header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:linear-gradient(90deg,var(--blue),var(--pink))}
-    .logo{display:flex;align-items:center;min-height:52px}
-    .brand-logo{display:block;height:56px;width:auto;max-width:min(60vw,480px)}
-    .brand-logo--small{height:52px}
-    .live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
-    .live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
-    @keyframes p{50%{opacity:.2}} 
-    .ticker{background:#000;color:#ffe14d;overflow:hidden;white-space:nowrap;font-weight:700;font-size:14px;padding:8px 0}
-    .ticker span{display:inline-block;padding-left:100%;animation:t 30s linear infinite}
-    @keyframes t{to{transform:translateX(-100%)}}
-    main{max-width:980px;margin:0 auto;padding:20px 16px}
-    .hero{background:linear-gradient(135deg,#1b1b44,#2a1450);border-radius:18px;padding:28px 20px;text-align:center}
-    .hero small,.bar small{color:var(--mut);letter-spacing:2px;font-size:11px}
-    .hero h1{margin:8px 0 18px;font-size:clamp(22px,5vw,38px)}
-    .btn{font:inherit;font-weight:800;font-size:20px;padding:14px 34px;border:0;border-radius:99px;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--blue),var(--pink))}
-    .bar{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:14px;padding:12px 16px;background:#000d;backdrop-filter:blur(8px);border-top:1px solid #ffffff22}
-    #pp{width:48px;height:48px;border-radius:50%;border:0;font-size:20px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--blue),var(--pink))}
-  </style>
-</head>
-<body>
-  <header>
-    <div class="logo"><img src="/radio-dtk-logo.svg" alt="Radio DTK" class="brand-logo brand-logo--small"></div>
-    <div class="live"><i></i>EN DIRECT</div>
-  </header>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 980" aria-labelledby="title desc" role="img">
+  <title id="title">Radio DTK</title>
+  <desc id="desc">Logo Radio DTK inspiré du mockup avec texte RADIO blanc, DTK rouge et étoile rouge.</desc>
+  <rect width="1600" height="980" fill="#000000"/>
 
-  <main>
-    <div class="hero">
-      <h1>Radio DTK</h1>
-      <button class="btn">▶ Écouter</button>
-    </div>
-  </main>
+  <g transform="translate(60 50)">
+    <path d="M60 190 H1500 V655 H60 Z" fill="none" stroke="#ff1f1f" stroke-width="16"/>
+    <path d="M70 205 H1490 V640 H70 Z" fill="none" stroke="#d7d7d7" stroke-width="4" opacity="0.7"/>
 
-  <div class="bar">
-    <button id="pp">▶</button>
-    <div><small>RADIO DTK</small><div>Prêt à écouter</div></div>
-  </div>
-</body>
-</html>
+    <g font-family="Impact, Arial Black, sans-serif" font-weight="900" letter-spacing="-10">
+      <text x="112" y="430" font-size="290" fill="#f2f2f2">RADIO</text>
+      <text x="228" y="700" font-size="310" fill="#ff1f1f" transform="skewX(-9)">DTK</text>
+    </g>
+
+    <g transform="translate(1160 15)">
+      <path d="M0,-220 L54,-42 L232,-42 L82,28 L130,210 L0,94 L-130,210 L-82,28 L-232,-42 L-54,-42 Z" fill="#ff1f1f" stroke="#f7f7f7" stroke-width="18"/>
+      <path d="M0,-183 L42,-42 L196,-42 L68,20 L102,168 L0,82 L-102,168 L-68,20 L-196,-42 L-42,-42 Z" fill="#ff1f1f"/>
+      <path d="M0,-145 L24,-44 L128,-44 L36,8 L62,118 L0,60 L-62,118 L-36,8 L-128,-44 L-24,-44 Z" fill="#ff1f1f" opacity="0.18"/>
+    </g>
+
+    <g transform="translate(180 750)" font-family="Impact, Arial Black, sans-serif" font-weight="900" letter-spacing="3">
+      <rect x="0" y="0" width="1185" height="110" fill="#f3f3f3" opacity="0.1"/>
+      <rect x="24" y="22" width="1137" height="72" fill="none" stroke="#f2f2f2" stroke-width="4" opacity="0.75"/>
+      <g fill="#f2f2f2" font-size="90">
+        <text x="170" y="78">TA RADIO, TA VIBE</text>
+      </g>
+    </g>
+  </g>
+</svg>
