@@ -232,7 +232,9 @@ export default function Radio() {
   return (
     <div className={playing ? 'playing' : ''}>
       <header>
-        <div className="logo">📻 Ma Radio</div>
+        <div className="logo">
+          <img src="/radio-dtk-logo.svg" alt="Radio DTK" className="brand-logo brand-logo--small" />
+        </div>
         <div className="live"><i></i>EN DIRECT</div>
       </header>
 

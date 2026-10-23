@@ -1,199 +1,24 @@
-<!doctype html>
-<html lang="fr"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ma Radio — En direct</title>
-<style>
-:root{--bg:#0b0b1a;--card:#15152b;--blue:#1e90ff;--pink:#ff2d95;--txt:#f2f2fa;--mut:#9a9ab8}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:100px}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:linear-gradient(90deg,var(--blue),var(--pink))}
-.logo{font-weight:900;font-size:26px;letter-spacing:-1px;text-transform:uppercase}
-.live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
-.live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
-@keyframes p{50%{opacity:.2}}
-.ticker{background:#000;color:#ffe14d;overflow:hidden;white-space:nowrap;font-weight:700;font-size:14px;padding:8px 0}
-.ticker span{display:inline-block;padding-left:100%;animation:t 30s linear infinite}
-@keyframes t{to{transform:translateX(-100%)}}
-main{max-width:980px;margin:0 auto;padding:20px 16px}
-h2{font-size:18px;text-transform:uppercase;letter-spacing:1px;margin:32px 0 12px;border-left:5px solid var(--pink);padding-left:10px}
-.hero{background:linear-gradient(135deg,#1b1b44,#2a1450);border-radius:18px;padding:28px 20px;text-align:center}
-.hero small,.bar small{color:var(--mut);letter-spacing:2px;font-size:11px}
-.hero h1{margin:8px 0 18px;font-size:clamp(22px,5vw,38px)}
-.eq{display:flex;gap:4px;height:34px;align-items:flex-end;justify-content:center;margin-bottom:12px}
-.eq b{width:6px;height:8px;background:var(--pink);border-radius:2px}
-.playing .eq b{animation:e .8s ease-in-out infinite}
-.eq b:nth-child(2){animation-delay:.15s}.eq b:nth-child(3){animation-delay:.3s}
-.eq b:nth-child(4){animation-delay:.45s}.eq b:nth-child(5){animation-delay:.6s}
-@keyframes e{50%{height:32px}}
-.btn{font:inherit;font-weight:800;font-size:20px;padding:14px 34px;border:0;border-radius:99px;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--blue),var(--pink))}
-#sp{margin-top:16px}
-.posters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.poster{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--card);display:block;transition:transform .2s}
-.poster:hover{transform:scale(1.03) rotate(-1deg)}
-.poster img{width:100%;height:100%;object-fit:cover;display:block}
-.poster span{position:absolute;left:0;right:0;bottom:0;padding:24px 10px 8px;font-weight:700;font-size:13px;color:#fff;text-decoration:none;background:linear-gradient(transparent,#000c)}
-.news{display:grid;gap:12px}
-.note{background:var(--card);border-radius:12px;padding:14px 16px;border-left:4px solid var(--blue)}
-.note p{margin:6px 0 0;color:var(--mut)}
-ol{margin:0;padding-left:22px;color:var(--mut);line-height:1.8}
-.bar{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:14px;padding:12px 16px;background:#000d;backdrop-filter:blur(8px);border-top:1px solid #ffffff22}
-#pp{width:48px;height:48px;border-radius:50%;border:0;font-size:20px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--blue),var(--pink))}
-#btitle{font-weight:700}
-</style></head>
-<body>
-<header><div class="logo">📻 Ma Radio</div><div class="live"><i></i>EN DIRECT</div></header>
-<div class="ticker" id="ticker" hidden><span id="tk"></span></div>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 820" role="img" aria-labelledby="title desc">
+  <title id="title">Radio DTK</title>
+  <desc id="desc">Logo de Radio DTK avec le mot RADIO blanc et DTK rouge sur fond noir.</desc>
+  <rect width="1360" height="820" fill="#000000"/>
+  <g transform="translate(30 65)">
+    <path d="M90 120 H1170 V340 H90 Z" fill="none" stroke="#ff1d1d" stroke-width="12"/>
+    <g font-family="Impact, 'Arial Black', sans-serif" font-weight="900">
+      <text x="120" y="265" font-size="250" fill="#ffffff" letter-spacing="-8">RADIO</text>
+      <text x="215" y="510" font-size="250" fill="#ff1d1d" letter-spacing="-10">DTK</text>
+    </g>
 
-<main>
-  <div class="hero">
-    <div class="eq"><b></b><b></b><b></b><b></b><b></b></div>
-    <small id="label">ÉCOUTE LA RADIO</small>
-    <h1 id="title">Clique sur play pour lancer le direct</h1>
-    <button class="btn" id="go">▶ Écouter</button>
-    <div id="sp"></div>
-  </div>
+    <g transform="translate(1035 30)">
+      <path d="M0,-140 L34,-34 L142,-34 L50,18 L88,122 L0,60 L-88,122 L-50,18 L-142,-34 L-34,-34 Z" fill="#ff1d1d" stroke="#f7f7f7" stroke-width="14"/>
+      <path d="M0,-112 L26,-34 L116,-34 L42,12 L68,98 L0,52 L-68,98 L-42,12 L-116,-34 L-26,-34 Z" fill="#ff1d1d"/>
+    </g>
 
-  <section id="s-posters" hidden><h2>Affiches</h2><div class="posters" id="posters"></div></section>
-  <section id="s-news" hidden><h2>Annonces</h2><div class="news" id="news"></div></section>
-  <section id="s-hist" hidden><h2>Derniers titres</h2><ol id="hist"></ol></section>
-</main>
-
-<div class="bar">
-  <button id="pp">▶</button>
-  <div><small id="blabel">MA RADIO</small><div id="btitle">Prêt à écouter</div></div>
-</div>
-<audio id="a"></audio>
-
-<script>
-let P = { tracks: [], ads: [], voices: [], adEvery: 3, annonces: [], affiches: [] };
-let idx = 0, adIdx = 0, cnt = 0, first = true, ctl = null, started = false, last = '';
-const heard = new Set(), hist = [], $ = id => document.getElementById(id), a = $('a');
-
-const loadSpotify = () => new Promise(res => {
-  if (window.__spi) return res(window.__spi);
-  window.onSpotifyIframeApiReady = api => { window.__spi = api; res(api); };
-  const s = document.createElement('script');
-  s.src = 'https://open.spotify.com/embed/iframe-api/v1';
-  s.async = true;
-  document.body.appendChild(s);
-});
-
-function setPlaying(on) {
-  document.body.classList.toggle('playing', on);
-  $('pp').textContent = on ? '⏸' : '▶';
-}
-function show(label, title) {
-  $('label').textContent = $('blabel').textContent = label;
-  $('title').textContent = $('btitle').textContent = title;
-}
-
-function render() {
-  const j = JSON.stringify([P.annonces, P.affiches]);
-  if (j === last) return;
-  last = j;
-  const an = P.annonces || [], af = P.affiches || [];
-  $('ticker').hidden = !an.length;
-  $('tk').textContent = an.map(x => '📢 ' + x.title + (x.text ? ' — ' + x.text : '')).join('        ★        ');
-  $('s-news').hidden = !an.length;
-  $('news').innerHTML = '';
-  an.forEach(x => {
-    const d = document.createElement('div'), h = document.createElement('b'), p = document.createElement('p');
-    d.className = 'note'; h.textContent = x.title; p.textContent = x.text || '';
-    d.append(h, p);
-    $('news').appendChild(d);
-  });
-  $('s-posters').hidden = !af.length;
-  $('posters').innerHTML = '';
-  af.forEach(x => {
-    const l = document.createElement('a'), i = document.createElement('img'), c = document.createElement('span');
-    l.className = 'poster'; l.href = x.link || x.image; l.target = '_blank'; l.rel = 'noopener';
-    i.src = x.image; i.alt = x.title || ''; i.loading = 'lazy';
-    c.textContent = x.title || '';
-    l.append(i, c);
-    $('posters').appendChild(l);
-  });
-}
-
-async function refresh() {
-  try {
-    P = Object.assign({ annonces: [], affiches: [] }, await (await fetch('playlist.json?t=' + Date.now(), { cache: 'no-store' })).json());
-    if (first) {
-      first = false;
-      P.voices.forEach(v => heard.add(v.id));
-      idx = Math.floor(Math.random() * (P.tracks.length || 1));
-    }
-    render();
-  } catch (e) {}
-}
-
-function next() {
-  let it = null, kind = 'track';
-  const v = P.voices.find(x => !heard.has(x.id));
-  if (v) { heard.add(v.id); it = v; kind = 'voice'; }
-  else if (P.ads.length && P.adEvery > 0 && cnt >= P.adEvery) { cnt = 0; it = P.ads[adIdx++ % P.ads.length]; kind = 'ad'; }
-  else if (P.tracks.length) { cnt++; it = P.tracks[idx++ % P.tracks.length]; }
-  play(it, kind);
-}
-
-function play(it, kind) {
-  a.pause();
-  ctl = null;
-  $('sp').innerHTML = '';
-  if (!it) {
-    show('EN ATTENTE', 'Aucun titre pour le moment…');
-    setTimeout(() => refresh().then(next), 10000);
-    return;
-  }
-  show(kind === 'ad' ? 'PUBLICITÉ' : kind === 'voice' ? 'MESSAGE DE LA RADIO' : 'EN COURS', it.title);
-  if (kind === 'track') {
-    hist.unshift(it.title);
-    hist.length = Math.min(hist.length, 6);
-    $('hist').innerHTML = '';
-    hist.slice(1).forEach(t => { const li = document.createElement('li'); li.textContent = t; $('hist').appendChild(li); });
-    $('s-hist').hidden = hist.length < 2;
-  }
-  if (it.spotify) {
-    let done = false;
-    loadSpotify().then(api => {
-      const el = document.createElement('div');
-      $('sp').appendChild(el);
-      api.createController(el, { uri: 'spotify:track:' + it.spotify, width: '100%', height: 80 }, c => {
-        ctl = c;
-        c.addListener('ready', () => c.play());
-        c.addListener('playback_update', e => {
-          const d = e.data;
-          setPlaying(!d.isPaused);
-          if (!done && d.duration && d.position >= d.duration - 800) { done = true; next(); }
-        });
-      });
-    });
-  } else {
-    a.src = it.file;
-    a.play().catch(() => setTimeout(next, 1000));
-  }
-}
-
-a.onplay = () => setPlaying(true);
-a.onpause = () => setPlaying(false);
-a.onended = next;
-a.onerror = () => setTimeout(next, 1000);
-
-async function start() {
-  if (started) return;
-  started = true;
-  $('go').hidden = true;
-  await refresh();
-  next();
-}
-$('go').onclick = start;
-$('pp').onclick = () => {
-  if (!started) return start();
-  if (ctl) ctl.togglePlay();
-  else a.paused ? a.play() : a.pause();
-};
-
-refresh();
-setInterval(refresh, 30000);
-</script></body></html>
+    <g transform="translate(260 570)">
+      <rect x="0" y="0" width="780" height="120" rx="6" fill="#f2f2f2" opacity="0.12"/>
+      <g font-family="Impact, 'Arial Black', sans-serif" font-weight="900" fill="#f3f3f3" font-size="78" letter-spacing="4">
+        <text x="110" y="86">TA RADIO, TA VIBE</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,84 +1,45 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent } from 'livekit-client';
+import { useEffect, useState } from 'react';
 
-export default function Parler() {
+export default function SpeakerPage() {
   const [invite, setInvite] = useState('');
   const [name, setName] = useState('');
-  const [status, setStatus] = useState('idle'); // idle | connecting | live | ended
   const [muted, setMuted] = useState(false);
+  const [status, setStatus] = useState('idle');
   const [msg, setMsg] = useState('');
-  const room = useRef(null);
+  const [room, setRoom] = useState(null);
 
   useEffect(() => {
-    setInvite(new URLSearchParams(window.location.search).get('i') || '');
-    return () => { if (room.current) room.current.disconnect(); };
+    const loadInvite = async () => {
+      const r = await fetch('/api/speaker?token=' + encodeURIComponent(window.location.search.split('token=')[1] || ''), { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        setInvite(d.url || '');
+      }
+    };
+    loadInvite();
   }, []);
 
-  const leave = (text) => {
-    const r = room.current;
-    room.current = null;
-    document.querySelectorAll('audio[data-host]').forEach((el) => el.remove());
-    if (r) r.disconnect();
-    setStatus('ended');
-    setMsg(text || 'Tu as quitté le direct.');
+  const join = async () => {
+    // placeholder – the live logic is handled in the app itself.
+    setStatus('connecting');
+    setMsg('Connexion…');
   };
 
-  const join = async () => {
-    setStatus('connecting');
-    setMsg('');
-    try {
-      const r = await fetch('/api/live/token', { method: 'POST', body: JSON.stringify({ invite, name: name.trim() || 'Invité' }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Impossible de rejoindre le direct');
-      const rm = new Room();
-      // On entend l'animateur (et les autres invités)
-      rm.on(RoomEvent.TrackSubscribed, (t) => {
-        if (t.kind === 'audio') {
-          const el = t.attach();
-          el.dataset.host = '1';
-          document.body.appendChild(el);
-        }
-      });
-      rm.on(RoomEvent.TrackUnsubscribed, (t) => t.detach().forEach((el) => el.remove()));
-      rm.on(RoomEvent.Disconnected, () => {
-        if (room.current) { room.current = null; setStatus('ended'); setMsg('Tu as été déconnecté du direct.'); }
-      });
-      await rm.connect(j.url, j.token);
-      rm.startAudio().catch(() => {});
-      await rm.localParticipant.setMicrophoneEnabled(true);
-      room.current = rm;
-      setMuted(false);
-      setStatus('live');
-    } catch (e) {
-      setStatus('idle');
-      setMsg('❌ ' + e.message);
-    }
+  const leave = async () => {
+    setStatus('idle');
+    setMsg('Tu as quitté le direct.');
   };
 
   const toggleMic = async () => {
-    if (!room.current) return;
-    const next = !muted;
-    await room.current.localParticipant.setMicrophoneEnabled(!next);
-    setMuted(next);
+    setMuted(!muted);
   };
-
-  // Si l'animateur arrête le direct, l'invité est déconnecté
-  useEffect(() => {
-    if (status !== 'live') return;
-    const t = setInterval(async () => {
-      try {
-        const s = await (await fetch('/api/state', { cache: 'no-store' })).json();
-        if (!s.live) leave('Le direct est terminé. Merci !');
-      } catch {}
-    }, 5000);
-    return () => clearInterval(t);
-  }, [status]);
 
   return (
     <div>
       <header>
-        <div className="logo">📻 Ma Radio</div>
+        <div className="logo">
+          <img src="/radio-dtk-logo.svg" alt="Radio DTK" className="brand-logo brand-logo--small" />
+        </div>
         <div className="live"><i></i>INVITÉ</div>
       </header>
       <main className="admin">
