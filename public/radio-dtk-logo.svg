@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Radio DTK logo">
+  <defs>
+    <style>
+      .bg { fill: #0b1020; }
+    </style>
+  </defs>
+  <rect class="bg" width="512" height="512" rx="64"/>
+  <image href="/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png" x="26" y="26" width="460" height="460" preserveAspectRatio="xMidYMid meet"/>
+</svg>
