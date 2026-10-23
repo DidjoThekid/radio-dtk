@@ -4,9 +4,9 @@ export const metadata = {
   title: 'Radio DTK',
   description: 'Radio DTK',
   icons: {
-    icon: '/radio-dtk-logo.svg',
-    shortcut: '/radio-dtk-logo.svg',
-    apple: '/radio-dtk-logo.svg',
+    icon: 'https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png',
+    shortcut: 'https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png',
+    apple: 'https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png',
   },
   themeColor: '#000000',
 };

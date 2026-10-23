@@ -37,7 +37,7 @@ export default function SpeakerPage() {
     <div>
       <header>
         <div className="logo">
-          <img src="/radio-dtk-logo.svg" alt="Radio DTK" className="brand-logo brand-logo--small" />
+          <img src="https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png" alt="Radio DTK" className="brand-logo brand-logo--small" />
         </div>
         <div className="live"><i></i>INVITÉ</div>
       </header>
