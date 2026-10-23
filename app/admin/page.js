@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Room, RoomEvent } from 'livekit-client';
+import jsmediatags from 'jsmediatags';
 import AdminDedicaces from './AdminDedicaces';
 import AdminInvites from './AdminInvites';
 
@@ -44,7 +45,6 @@ export default function Admin() {
     if (await save(cur)) { setOk(true); setMsg(''); }
   };
 
-  // 🔴 Direct : ton micro est envoyé en temps réel aux auditeurs
   const goLive = async () => {
     try {
       setMsg('Connexion au direct…');
@@ -52,7 +52,6 @@ export default function Admin() {
       if (!r.ok) throw new Error(r.status === 500 ? 'LiveKit non configuré (variables Vercel)' : 'Mot de passe incorrect');
       const { token, url } = await r.json();
       const rm = new Room();
-      // Tu entends les invités qui rejoignent le direct
       rm.on(RoomEvent.TrackSubscribed, (t) => {
         if (t.kind === 'audio') { const el = t.attach(); el.dataset.guest = '1'; document.body.appendChild(el); }
       });
@@ -85,6 +84,31 @@ export default function Admin() {
       for (const f of files) {
         setMsg('Envoi de ' + f.name + '…');
         const item = { id: crypto.randomUUID(), type: 'file', title: f.name.replace(/\.[^.]+$/, ''), url: await up(f) };
+        
+        // 🎵 Extraction automatique de la pochette pour les musiques
+        if (key === 'tracks') {
+          try {
+            setMsg('Extraction de la pochette de ' + f.name + '…');
+            const tags = await new Promise((resolve, reject) => {
+              jsmediatags.read(f, {
+                onSuccess: (tag) => resolve(tag.tags),
+                onError: (error) => reject(error)
+              });
+            });
+            
+            if (tags && tags.picture) {
+              const { data, format } = tags.picture;
+              const blob = new Blob([new Uint8Array(data)], { type: format });
+              const coverFile = new File([blob], `cover-${item.id}.jpg`, { type: format });
+              setMsg('Envoi de la pochette de ' + f.name + '…');
+              item.image = await up(coverFile);
+            }
+          } catch (err) {
+            console.warn('Pochette non trouvée ou erreur pour ' + f.name + ':', err);
+            // On continue sans pochette, ce n'est pas bloquant
+          }
+        }
+
         if (key !== 'affiches') {
           item.duration = await dur(URL.createObjectURL(f));
           if (!item.duration) throw new Error(f.name + ' : durée illisible');
@@ -95,6 +119,22 @@ export default function Admin() {
       setMsg('✅ Terminé');
     } catch (err) { setMsg('❌ ' + err.message); }
     input.value = '';
+  };
+
+  const updateCover = async (trackId, file) => {
+    try {
+      setMsg('Envoi de la nouvelle pochette…');
+      const imageUrl = await up(file);
+      const n = { ...sr.current };
+      const track = n.tracks.find(t => t.id === trackId);
+      if (track) {
+        track.image = imageUrl;
+        await save(n);
+        setMsg('✅ Pochette mise à jour');
+      }
+    } catch (err) {
+      setMsg('❌ Erreur lors de l\'envoi de la pochette: ' + err.message);
+    }
   };
 
   const fix = async () => {
@@ -156,9 +196,36 @@ export default function Admin() {
 
   const List = ({ k }) => (
     <ul>{s[k].map((x) => (
-      <li key={x.id}>
-        <span>{lab(k, x)}</span>
-        <button className="d" onClick={() => del(k, x.id)}>✕</button>
+      <li key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {x.image && <img src={x.image} alt="cover" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, flexShrink: 0, background: '#333' }} />}
+          {lab(k, x)}
+        </span>
+        <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {k === 'tracks' && (
+            <>
+              <input 
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                id={`cover-${x.id}`}
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    await updateCover(x.id, e.target.files[0]);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <button 
+                onClick={() => document.getElementById(`cover-${x.id}`).click()} 
+                style={{ padding: '4px 10px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 'inherit' }}
+              >
+                🖼️ Cover
+              </button>
+            </>
+          )}
+          <button className="d" onClick={() => del(k, x.id)}>✕</button>
+        </span>
       </li>
     ))}</ul>
   );
