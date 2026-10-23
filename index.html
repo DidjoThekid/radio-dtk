@@ -13,11 +13,10 @@
     .brand-logo--small{height:52px}
     .live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
     .live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
-    .live img{display:block;height:24px;width:auto}
     @keyframes p{50%{opacity:.2}} 
     .ticker{background:#000;color:#ffe14d;overflow:hidden;white-space:nowrap;font-weight:700;font-size:14px;padding:8px 0}
     .ticker span{display:inline-block;padding-left:100%;animation:t 30s linear infinite}
-    @keyframes t{to{transform:translateX(-100%)}}
+    @keyframes t{to{transform:translateX(-100%)} }
     main{max-width:980px;margin:0 auto;padding:20px 16px}
     .hero{background:linear-gradient(135deg,#1b1b44,#2a1450);border-radius:18px;padding:28px 20px;text-align:center}
     .hero small,.bar small{color:var(--mut);letter-spacing:2px;font-size:11px}
@@ -29,10 +28,8 @@
 </head>
 <body>
   <header>
-    <div class="logo">
-      <img src="https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png" alt="Radio DTK" class="brand-logo brand-logo--small">
-    </div>
-    <div class="live"><img src="https://raw.githubusercontent.com/DidjoThekid/radio-dtk/main/Logo%20radio%20DTK%20avec%20%C3%A9toile%20rouge.png" alt="EN DIRECT"></div>
+    <div class="logo"><img src="/radio-dtk-logo.svg" alt="Radio DTK" class="brand-logo brand-logo--small"></div>
+    <div class="live"><i></i>EN DIRECT</div>
   </header>
 
   <main>
