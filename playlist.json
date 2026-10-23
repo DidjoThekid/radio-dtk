@@ -1,6 +1,42 @@
 {
   "adEvery": 3,
-  "tracks": [{ "title": "Mon titre", "file": "music/titre.mp3" }],
+  "tracks": [
+    {
+      "id": "track-1",
+      "title": "Wagyu",
+      "artist": "Mauvais Djo",
+      "file": "music/titre.mp3",
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "track-2",
+      "title": "Skyrock 100 % Français",
+      "artist": "KeBlack",
+      "file": "music/track-2.mp3",
+      "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "track-3",
+      "title": "Vive la monnaie",
+      "artist": "Gims",
+      "file": "music/track-3.mp3",
+      "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "track-4",
+      "title": "Coolio - 1, 2, 3, 4",
+      "artist": "Coolio",
+      "file": "music/track-4.mp3",
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "track-5",
+      "title": "Nouveau",
+      "artist": "Jok'air",
+      "file": "music/track-5.mp3",
+      "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80"
+    }
+  ],
   "ads": [],
   "voices": [],
   "annonces": [{ "title": "Soirée vendredi", "text": "Rendez-vous à 20h !" }],

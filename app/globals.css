@@ -8,7 +8,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:14p
 .brand-logo--small{height:52px}
 .live{background:#fff;color:#e00;font-weight:800;font-size:12px;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:6px}
 .live i{width:8px;height:8px;border-radius:50%;background:#e00;animation:p 1s infinite}
-.live--cover{padding:0;gap:8px;background:#1b1b44;border:1px solid rgba(255,255,255,.18);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.live--cover{padding:0;gap:8px;background:linear-gradient(135deg,#1b1b44,#0a1d63);border:1px solid rgba(255,255,255,.18);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .live-cover{display:block;width:30px;height:30px;object-fit:cover;border-radius:8px}
 .live--cover span{display:inline-block;padding:0 10px 0 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#fff}
 @keyframes p{50%{opacity:.2}}
@@ -34,6 +34,16 @@ button.d{padding:4px 10px}
 .btn{font-weight:800;font-size:20px;padding:14px 34px;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--pink))}
 input{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid #333;background:#1c1c26;color:var(--txt)}
 #sp{margin-top:16px}
+.track-section{margin-top:24px}
+.track-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+.music-card{background:linear-gradient(180deg,#1d4499,#0e2f75);border-radius:18px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.music-art{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1/1;background:#09152d}
+.music-art img,.music-art--fallback{width:100%;height:100%;display:block;object-fit:cover}
+.music-art--fallback{display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#fff;background:linear-gradient(135deg,#ff2d95,#1e90ff)}
+.play-btn{position:absolute;left:12px;bottom:12px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#ff2d95,#1e90ff);font-size:18px;padding:0;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.music-meta{margin-top:12px}
+.music-meta h3{margin:0 0 4px;font-size:1.05rem;line-height:1.3}
+.music-meta small{color:#dfe9ff;display:block}
 .posters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .poster{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--card);display:block;transition:transform .2s}
 .poster:hover{transform:scale(1.03) rotate(-1deg)}
