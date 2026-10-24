@@ -1,6 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 
-const SITE_URL = 'https://radio-dtk.vercel.app';
+const SITE_URL = 'https://radio-teamdtk.vercel.app';
 
 function createWindow() {
   const win = new BrowserWindow({
