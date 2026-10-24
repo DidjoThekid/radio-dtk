@@ -1,0 +1,9 @@
+{
+  "appId": "app.dtk.radio",
+  "appName": "Radio DTK",
+  "webDir": "www",
+  "server": {
+    "url": "https://radio-dtk.vercel.app",
+    "cleartext": false
+  }
+}
