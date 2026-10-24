@@ -179,7 +179,6 @@ export default function Radio() {
       if (item.kind === 'track') setHist((h) => [item.title, ...h].slice(0, 6));
     } else if (!a.paused && Math.abs(a.currentTime - pos) > 2) {
       a.currentTime = pos; // recale sur le direct
-    } else if (a.paused &&
     } else if (a.paused && !userPaused.current && !quiet && a.readyState > 0) {
       a.play().catch(() => {});
     }
