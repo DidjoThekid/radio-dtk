@@ -22,6 +22,7 @@ export default function Admin() {
   const [ok, setOk] = useState(false);
   const [s, setS] = useState(EMPTY);
   const [msg, setMsg] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('');
   const [link, setLink] = useState('');
   const [at, setAt] = useState('');
   const [ax, setAx] = useState('');
@@ -42,6 +43,30 @@ export default function Admin() {
   const login = async () => {
     const cur = { ...EMPTY, ...(await (await fetch('/api/state', { cache: 'no-store' })).json()), live: false };
     if (await save(cur)) { setOk(true); setMsg(''); }
+  };
+
+  const updateApp = async () => {
+    const pwd = sessionStorage.getItem('adminPwd') || prompt('Mot de passe admin :');
+    if (!pwd) return;
+
+    setUpdateStatus('Mise à jour en cours…');
+    try {
+      const r = await fetch('/api/update', {
+        method: 'POST',
+        headers: { 'x-admin-password': pwd },
+      });
+      const d = await r.json().catch(() => ({}));
+
+      if (r.ok) {
+        sessionStorage.setItem('adminPwd', pwd);
+        setUpdateStatus('✅ Déploiement lancé. Les apps se mettent à jour dans ~1 min.');
+      } else {
+        sessionStorage.removeItem('adminPwd');
+        setUpdateStatus('❌ ' + (d.error || 'Erreur'));
+      }
+    } catch (err) {
+      setUpdateStatus('❌ Erreur réseau');
+    }
   };
 
   const goLive = async () => {
@@ -83,13 +108,12 @@ export default function Admin() {
       for (const f of files) {
         setMsg('Envoi de ' + f.name + '…');
         const item = { id: crypto.randomUUID(), type: 'file', title: f.name.replace(/\.[^.]+$/, ''), url: await up(f) };
-        
-        // 🎵 Extraction automatique de la pochette pour les musiques
+
         if (key === 'tracks') {
           try {
             setMsg('Extraction de la pochette de ' + f.name + '…');
             const metadata = await parseBlob(f);
-            
+
             if (metadata.common.picture && metadata.common.picture.length > 0) {
               const picture = metadata.common.picture[0];
               const blob = new Blob([picture.data], { type: picture.format });
@@ -242,6 +266,12 @@ export default function Admin() {
         <p>⚠️ Certains anciens titres n'ont pas de durée et ne passent pas en direct.{' '}
           <button onClick={fix}>🔧 Mesurer les durées</button></p>
       )}
+
+      <div className="card">
+        <h2>🔄 Mise à jour</h2>
+        <button type="button" onClick={updateApp}>🔄 Mettre à jour</button>
+        <span style={{ marginLeft: 10 }}>{updateStatus}</span>
+      </div>
 
       <AdminDedicaces pw={pw} />
 
