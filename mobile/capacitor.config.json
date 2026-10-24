@@ -3,7 +3,7 @@
   "appName": "Radio DTK",
   "webDir": "www",
   "server": {
-    "url": "https://radio-dtk.vercel.app",
+    "url": "https://radio-teamdtk.vercel.app",
     "cleartext": false
   }
 }
