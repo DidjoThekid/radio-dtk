@@ -1,9 +1,7 @@
-// Radio DTK : affiche la pochette intégrée du MP3 en cours à la place des barres roses (logo).
+// Radio DTK : affiche la pochette intégrée du MP3 en cours à la place des barres roses de la carte.
 (function () {
-  var LOGO_SEL = 'img[src*="radio-dtk-logo"]';
   var cache = {};
   var tracked = [];
-  var lastSrc = null;
 
   var origPlay = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () {
@@ -78,35 +76,51 @@
     return null;
   }
 
-  function findLogo() {
-    return document.querySelector('img[data-cover-live]') || document.querySelector(LOGO_SEL);
+  // Trouve les barres roses (juste au-dessus du texte "EN DIRECT" / "PUBLICITÉ" dans la carte)
+  function findBars() {
+    var els = document.querySelectorAll('div,span,p,small,h6');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.children.length || !/^(en direct|publicit)/i.test(el.textContent.trim())) continue;
+      var prev = el.previousElementSibling;
+      if (!prev) continue;
+      var r = prev.getBoundingClientRect();
+      if (r.width >= 24 && r.height >= 24 && r.height < 200) return { label: el, bars: prev };
+    }
+    return null;
   }
   function showCover(url) {
-    var img = findLogo(); if (!img) return;
-    if (!img.dataset.coverLive) {
-      img.dataset.coverLive = '1';
-      img.dataset.origSrc = img.getAttribute('src');
-      img.dataset.origStyle = img.getAttribute('style') || '';
+    var img = document.getElementById('cover-live-img');
+    if (!img) {
+      var t = findBars(); if (!t) return;
+      img = document.createElement('img');
+      img.id = 'cover-live-img';
+      img.alt = 'Pochette';
+      img.style.cssText = 'display:block;margin:0 auto 12px;width:min(170px,50vw);height:min(170px,50vw);' +
+        'object-fit:cover;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.45)';
+      t.label.parentNode.insertBefore(img, t.label);
+      t.bars.setAttribute('data-cover-hidden', '1');
+      t.bars.style.display = 'none';
     }
-    img.src = url;
-    img.style.cssText = img.dataset.origStyle +
-      ';width:min(220px,60vw);height:min(220px,60vw);object-fit:cover;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.45)';
+    if (img.src !== url) img.src = url;
   }
-  function showLogo() {
-    var img = document.querySelector('img[data-cover-live]'); if (!img) return;
-    img.src = img.dataset.origSrc;
-    img.setAttribute('style', img.dataset.origStyle);
-    delete img.dataset.coverLive;
+  function showBars() {
+    var img = document.getElementById('cover-live-img');
+    if (img) img.remove();
+    var b = document.querySelector('[data-cover-hidden]');
+    if (b) { b.style.display = ''; b.removeAttribute('data-cover-hidden'); }
   }
 
-  async function load(src) {
-    if (src in cache) return cache[src];
-    cache[src] = null;
-    try {
-      var head = await fetchHead(src);
-      var blob = head && parseCover(head);
-      if (blob) cache[src] = URL.createObjectURL(blob);
-    } catch (e) {}
+  function load(src) {
+    if (!cache[src]) {
+      cache[src] = (async function () {
+        try {
+          var head = await fetchHead(src);
+          var blob = head && parseCover(head);
+          return blob ? URL.createObjectURL(blob) : null;
+        } catch (e) { return null; }
+      })();
+    }
     return cache[src];
   }
 
@@ -121,11 +135,10 @@
 
   async function tick() {
     var src = currentSrc();
-    if (!src || src === lastSrc) return;
-    lastSrc = src;
+    if (!src) return;
     var url = await load(src);
-    if (src !== lastSrc) return;
-    if (url) showCover(url); else showLogo();
+    if (src !== currentSrc()) return;
+    if (url) showCover(url); else showBars();
   }
   setInterval(tick, 1000);
 })();
