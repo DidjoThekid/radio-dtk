@@ -180,3 +180,160 @@ export default function Radio() {
     } else if (!a.paused && Math.abs(a.currentTime - pos) > 2) {
       a.currentTime = pos; // recale sur le direct
     } else if (a.paused &&
+    } else if (a.paused && !userPaused.current && !quiet && a.readyState > 0) {
+      a.play().catch(() => {});
+    }
+  };
+
+  const start = async () => {
+    if (began.current) return;
+    began.current = true;
+    setStarted(true);
+    if (ctl.current && spOn.current) ctl.current.pause();
+    userPaused.current = false;
+    [audio.current, voice.current].forEach((el) => { el.src = SILENCE; el.play().catch(() => {}); });
+    await refresh();
+    tick();
+  };
+
+  const toggle = () => {
+    if (!began.current) return start();
+    const a = audio.current;
+    if (a.paused) {
+      userPaused.current = false;
+      if (ctl.current && spOn.current) ctl.current.pause(); // on revient au direct
+      a.play().catch(() => {});
+    } else { userPaused.current = true; a.pause(); }
+  };
+
+  // Lecteur de la playlist Spotify
+  const spKey = P.spotify ? P.spotify.kind + P.spotify.id : '';
+  useEffect(() => {
+    if (!P.spotify || !box.current) return;
+    let dead = false;
+    box.current.innerHTML = '';
+    loadSpotify().then((api) => {
+      if (dead || !box.current) return;
+      const el = document.createElement('div');
+      box.current.appendChild(el);
+      api.createController(el, { uri: 'spotify:' + P.spotify.kind + ':' + P.spotify.id, width: '100%', height: 352 }, (c) => {
+        ctl.current = c;
+        c.addListener('playback_update', (e) => {
+          spOn.current = !e.data.isPaused;
+          // la playlist démarre : on met la radio en direct en pause
+          if (spOn.current && !audio.current.paused) { userPaused.current = true; audio.current.pause(); }
+        });
+      });
+    });
+    return () => { dead = true; ctl.current = null; spOn.current = false; };
+  }, [spKey]);
+
+  useEffect(() => {
+    refresh();
+    const r = setInterval(refresh, 3000);
+    const k = setInterval(() => began.current && tick(), 500);
+    return () => { clearInterval(r); clearInterval(k); leaveLive(); };
+  }, []);
+
+  return (
+    <div className={playing ? 'playing' : ''}>
+      <header>
+        <div className="logo">
+          <img src="/radio-dtk-logo.svg" alt="Radio DTK" className="brand-logo brand-logo--small" />
+        </div>
+        {coverUrl ? (
+          <div className="live live--cover" aria-label="EN DIRECT">
+            <img src={coverUrl} alt={currentTrack?.title || 'Pochette'} className="live-cover" />
+            <span>EN DIRECT</span>
+          </div>
+        ) : (
+          <div className="live"><i></i>EN DIRECT</div>
+        )}
+      </header>
+
+      {P.annonces.length > 0 && (
+        <div className="ticker">
+          <span>{P.annonces.map((x) => '📢 ' + x.title + (x.text ? ' — ' + x.text : '')).join('\u00a0\u00a0\u00a0\u00a0★\u00a0\u00a0\u00a0\u00a0')}</span>
+        </div>
+      )}
+
+      <main>
+        <div className="hero">
+          {liveOn && (
+            <div className="live" style={{ margin: '0 auto 14px', width: 'fit-content' }}><i></i>🎙️ Direct en cours</div>
+          )}
+          <div className="eq"><b></b><b></b><b></b><b></b><b></b></div>
+          <small>{info.label}</small>
+          <h1>{info.title}</h1>
+          {!started && <button className="btn" onClick={start}>▶ Écouter</button>}
+          {needAudio && (
+            <p><button className="btn" onClick={() => liveRoom.current && liveRoom.current.startAudio()}>🔊 Activer le son du direct</button></p>
+          )}
+          <p>
+            <button onClick={goDedicace}
+              style={{ background: 'transparent', border: '2px solid #ff2d95', borderRadius: 99, padding: '10px 22px', fontWeight: 800 }}>
+              💌 Faire une dédicace · 0,99 €
+            </button>
+          </p>
+        </div>
+
+        {P.spotify && (
+          <section>
+            <h2>Playlist Spotify</h2>
+            <div ref={box} />
+            <small style={{ display: 'block', marginTop: 8 }}>
+              🟢 Connecte-toi à Spotify dans ce navigateur pour l'écouter en entier (sinon, extraits de 30 s).
+              Quand tu la lances, la radio en direct se met en pause : reviens avec le bouton ▶ en bas.
+            </small>
+          </section>
+        )}
+
+        <div id="dedicace-zone">
+          <Dedicaces />
+        </div>
+
+        <DownloadApp />
+
+        {P.affiches.length > 0 && (
+          <section>
+            <h2>Affiches</h2>
+            <div className="posters">
+              {P.affiches.map((x) => (
+                <a key={x.id} className="poster" href={x.link || x.url} target="_blank" rel="noopener noreferrer">
+                  <img src={x.url} alt={x.title || ''} loading="lazy" />
+                  <span>{x.title}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {P.annonces.length > 0 && (
+          <section>
+            <h2>Annonces</h2>
+            <div className="news">
+              {P.annonces.map((x) => (
+                <div key={x.id} className="note"><b>{x.title}</b><p>{x.text}</p></div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {hist.length > 1 && (
+          <section>
+            <h2>Derniers titres</h2>
+            <ol>{hist.slice(1).map((t, i) => <li key={i}>{t}</li>)}</ol>
+          </section>
+        )}
+      </main>
+
+      <div className="bar">
+        <button id="pp" onClick={toggle}>{playing ? '⏸' : '▶'}</button>
+        <div><small>{info.label}</small><div id="btitle">{info.title}</div></div>
+      </div>
+
+      <audio ref={audio} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
+      <audio ref={voice} />
+    </div>
+  );
+}
