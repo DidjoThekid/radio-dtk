@@ -1,0 +1,23 @@
+{
+  "name": "radio-dtk-desktop",
+  "version": "1.0.0",
+  "description": "Radio DTK",
+  "main": "main.js",
+  "author": "DidjoThekid",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "app.dtk.radio",
+    "productName": "Radio DTK",
+    "files": ["main.js", "package.json"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg", "category": "public.app-category.music" }
+  }
+}

@@ -1,0 +1,27 @@
+<!-- À coller dans admin.html, là où tu veux le bouton -->
+<button id="btn-update" style="padding:10px 18px;font-weight:700;border-radius:8px;cursor:pointer">
+  🔄 Mettre à jour
+</button>
+<span id="update-status" style="margin-left:10px"></span>
+
+<script>
+document.getElementById('btn-update').addEventListener('click', async function () {
+  var status = document.getElementById('update-status');
+  var pwd = sessionStorage.getItem('adminPwd') || prompt('Mot de passe admin :');
+  if (!pwd) return;
+  status.textContent = 'Mise à jour en cours…';
+  try {
+    var r = await fetch('/api/update', { method: 'POST', headers: { 'x-admin-password': pwd } });
+    var d = await r.json();
+    if (r.ok) {
+      sessionStorage.setItem('adminPwd', pwd);
+      status.textContent = '✅ Déploiement lancé. Les apps se mettent à jour dans ~1 min.';
+    } else {
+      sessionStorage.removeItem('adminPwd');
+      status.textContent = '❌ ' + (d.error || 'Erreur');
+    }
+  } catch (e) { status.textContent = '❌ Erreur réseau'; }
+});
+</script>
+<!-- Et dans index.html ET admin.html, avant </body> : -->
+<script src="/auto-update.js"></script>
