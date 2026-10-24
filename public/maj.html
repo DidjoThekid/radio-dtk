@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mettre à jour Radio DTK</title>
+<style>
+  body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding:60px 16px}
+  button{padding:16px 28px;font-size:18px;font-weight:700;border-radius:10px;border:0;background:#e11d48;color:#fff;cursor:pointer}
+  #statut{margin-top:20px;font-size:16px}
+</style>
+</head>
+<body>
+  <h1>⚙️ Admin Radio DTK</h1>
+  <button id="btn-update">🔄 Mettre à jour</button>
+  <p id="statut"></p>
+<script>
+document.getElementById('btn-update').addEventListener('click', async function () {
+  var statut = document.getElementById('statut');
+  var pwd = sessionStorage.getItem('adminPwd') || prompt('Mot de passe admin :');
+  if (!pwd) return;
+  statut.textContent = 'Mise à jour en cours…';
+  try {
+    var r = await fetch('/api/update', { method: 'POST', headers: { 'x-admin-password': pwd } });
+    var d = await r.json();
+    if (r.ok) {
+      sessionStorage.setItem('adminPwd', pwd);
+      statut.textContent = '✅ Déploiement lancé. Les apps se mettent à jour dans environ 1 minute.';
+    } else {
+      sessionStorage.removeItem('adminPwd');
+      statut.textContent = '❌ ' + (d.error || 'Erreur');
+    }
+  } catch (e) { statut.textContent = '❌ Erreur réseau'; }
+});
+</script>
+</body>
+</html>
